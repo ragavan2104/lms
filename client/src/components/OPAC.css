@@ -1,0 +1,143 @@
+/* Styles for OPAC page layout and book cards */
+.opac .books-container.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.opac .books-container.list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.opac .book-card {
+  background-color: #ffffff;
+  padding: 16px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.opac .book-cover {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.opac .book-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.opac .view-details-btn {
+  margin-top: 12px;
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  background-color: #3b82f6;
+  color: white;
+  border-radius: 4px;
+}
+
+/* No Data Message Styles */
+.no-data-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  margin: 2rem 0;
+}
+
+.no-data-card {
+  background: white;
+  border-radius: 12px;
+  padding: 3rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+}
+
+.no-data-icon {
+  color: #9ca3af;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.no-data-card h3 {
+  color: #374151;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.no-data-card p {
+  color: #6b7280;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.opac .view-details-btn {
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.2s ease;
+}
+
+.opac .view-details-btn:hover {
+  background-color: #2563eb;
+}
+
+/* Empty state when no search has been performed */
+.opac .no-search-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 20px;
+  color: #374151;
+}
+
+.opac .no-search-state h4 {
+  margin-top: 16px;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.opac .no-search-state p {
+  margin-top: 8px;
+  font-size: 1rem;
+  color: #6b7280;
+}
+
+.opac .search-suggestions {
+  margin-top: 24px;
+  max-width: 400px;
+}
+
+.opac .search-suggestions p {
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.opac .search-suggestions ul {
+  list-style: disc inside;
+  text-align: left;
+  color: #4b5563;
+}
+
+.opac .search-suggestions ul li {
+  margin-bottom: 4px;
+}

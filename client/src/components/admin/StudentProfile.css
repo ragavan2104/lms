@@ -1,0 +1,32 @@
+/* Styles for StudentProfile tabs */
+.profile-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tab {
+  padding: 8px 16px;
+  background-color: #f3f4f6;
+  color: #374151;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.tab:hover:not(.active) {
+  background-color: #e5e7eb;
+}
+
+.tab.active {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+/* Tab content spacing */
+.tab-content {
+  padding-top: 16px;
+}
