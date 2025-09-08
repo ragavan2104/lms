@@ -94,6 +94,9 @@ class User(db.Model):
     department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=True)
     batch_from = db.Column(db.Integer, nullable=True)  # Starting year of batch
     batch_to = db.Column(db.Integer, nullable=True)    # Ending year of batch
+    address = db.Column(db.Text, nullable=True)  # User address
+    phone = db.Column(db.String(20), nullable=True)  # Phone number
+    profile_picture = db.Column(db.String(255), nullable=True)  # Profile picture path
     is_active = db.Column(db.Boolean, default=True)
     first_login_completed = db.Column(db.Boolean, default=False)  # Track if user has completed mandatory password change
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -654,10 +657,118 @@ def get_profile():
                 'validity_date': user.validity_date.isoformat() if user.validity_date else None,
                 'college': user.college.name if user.college else None,
                 'department': user.department.name if user.department else None,
+                'address': user.address,
+                'phone': user.phone,
+                'profile_picture': user.profile_picture,
                 'created_at': user.created_at.isoformat()
             }
         }), 200
 
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/auth/profile', methods=['PUT'])
+@jwt_required()
+def update_profile():
+    try:
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        data = request.get_json()
+        
+        # Update allowed fields
+        if 'address' in data:
+            user.address = data['address']
+        if 'phone' in data:
+            user.phone = data['phone']
+        if 'profile_picture' in data:
+            user.profile_picture = data['profile_picture']
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Profile updated successfully',
+            'user': {
+                'id': user.id,
+                'user_id': user.user_id,
+                'username': user.username,
+                'name': user.name,
+                'email': user.email,
+                'role': user.role,
+                'designation': user.designation,
+                'dob': user.dob.isoformat() if user.dob else None,
+                'validity_date': user.validity_date.isoformat() if user.validity_date else None,
+                'college': user.college.name if user.college else None,
+                'department': user.department.name if user.department else None,
+                'address': user.address,
+                'phone': user.phone,
+                'profile_picture': user.profile_picture,
+                'created_at': user.created_at.isoformat()
+            }
+        }), 200
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/auth/upload-profile-picture', methods=['POST'])
+@jwt_required()
+def upload_profile_picture():
+    try:
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        if 'profile_picture' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
+        
+        file = request.files['profile_picture']
+        
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Check file type
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        if not ('.' in file.filename and 
+                file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+            return jsonify({'error': 'Invalid file type. Please upload an image file.'}), 400
+        
+        # Create uploads directory if it doesn't exist
+        upload_dir = os.path.join(os.path.dirname(__file__), 'uploads', 'profile_pictures')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # Generate unique filename
+        from werkzeug.utils import secure_filename
+        import uuid
+        filename = secure_filename(file.filename)
+        file_extension = filename.rsplit('.', 1)[1].lower()
+        unique_filename = f"{uuid.uuid4().hex}.{file_extension}"
+        file_path = os.path.join(upload_dir, unique_filename)
+        
+        # Save file
+        file.save(file_path)
+        
+        # Delete old profile picture if exists
+        if user.profile_picture and os.path.exists(user.profile_picture):
+            try:
+                os.remove(user.profile_picture)
+            except OSError:
+                pass  # Ignore if file doesn't exist or can't be deleted
+        
+        # Update user profile picture path (store relative path)
+        relative_path = os.path.join('profile_pictures', unique_filename)
+        user.profile_picture = relative_path
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Profile picture uploaded successfully',
+            'profile_picture': relative_path
+        }), 200
+    
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -724,6 +835,14 @@ def change_password():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+# Static file serving for uploads
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    """Serve uploaded files (profile pictures, etc.)"""
+    from flask import send_from_directory
+    upload_dir = os.path.join(os.path.dirname(__file__), 'uploads')
+    return send_from_directory(upload_dir, filename)
 
 # Book Management Routes
 @app.route('/api/admin/books', methods=['GET'])
@@ -5687,7 +5806,10 @@ def get_student_dashboard():
                 'email': user.email,
                 'college': user.college.name if user.college else None,
                 'department': user.department.name if user.department else None,
-                'validity_date': user.validity_date.isoformat() if user.validity_date else None
+                'validity_date': user.validity_date.isoformat() if user.validity_date else None,
+                'profile_picture': user.profile_picture,
+                'address': user.address,
+                'phone': user.phone
             },
             'stats': {
                 'books_borrowed': len(current_books),
@@ -6080,7 +6202,7 @@ def get_student_books():
         return jsonify({'error': str(e)}), 500
 
 # Student E-books API
-@app.route('/api/student/ebooks', methods=['GET'])
+@app.route('/api/student/ebook', methods=['GET'])
 @jwt_required()
 def get_student_ebooks():
     try:
@@ -6102,7 +6224,8 @@ def get_student_ebooks():
                 db.or_(
                     Ebook.web_title.ilike(f'%{search}%'),
                     Ebook.subject.ilike(f'%{search}%'),
-                    Ebook.access_no.ilike(f'%{search}%')
+                    Ebook.access_no.ilike(f'%{search}%'),
+                    Ebook.web_detail.ilike(f'%{search}%')
                 )
             )
 
@@ -6115,17 +6238,80 @@ def get_student_ebooks():
         )
 
         return jsonify({
-            'ebooks': [{
+            'items': [{
                 'id': ebook.id,
+                'title': ebook.web_title,
                 'access_no': ebook.access_no,
                 'website': ebook.website,
-                'web_title': ebook.web_title,
                 'subject': ebook.subject,
                 'type': ebook.type,
-                'web_detail': ebook.web_detail,
+                'web_detail': ebook.web_detail[:200] + '...' if ebook.web_detail and len(ebook.web_detail) > 200 else ebook.web_detail,
                 'download_count': ebook.download_count,
                 'created_at': ebook.created_at.isoformat()
             } for ebook in pagination.items],
+            'total': pagination.total,
+            'pages': pagination.pages,
+            'current_page': pagination.page,
+            'has_next': pagination.has_next,
+            'has_prev': pagination.has_prev
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Student NewsClipping API
+@app.route('/api/student/newsclipping', methods=['GET'])
+@jwt_required()
+def get_student_newsclipping():
+    try:
+        current_user_id = int(get_jwt_identity())
+        current_user = User.query.get(current_user_id)
+        if not current_user or current_user.role != 'student':
+            return jsonify({'error': 'Student access required'}), 403
+
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 12))
+        search = request.args.get('search', '')
+        category = request.args.get('category', 'all')
+
+        # Query news clippings from database
+        query = NewsClipping.query
+
+        if search:
+            query = query.filter(
+                db.or_(
+                    NewsClipping.news_title.ilike(f'%{search}%'),
+                    NewsClipping.newspaper_name.ilike(f'%{search}%'),
+                    NewsClipping.news_subject.ilike(f'%{search}%'),
+                    NewsClipping.keywords.ilike(f'%{search}%')
+                )
+            )
+
+        if category != 'all':
+            query = query.filter(NewsClipping.news_type.ilike(f'%{category}%'))
+
+        # Paginate results
+        pagination = query.order_by(NewsClipping.date.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+
+        return jsonify({
+            'items': [{
+                'id': clipping.id,
+                'title': clipping.news_title,
+                'clipping_no': clipping.clipping_no,
+                'newspaper_name': clipping.newspaper_name,
+                'news_type': clipping.news_type,
+                'date': clipping.date.isoformat() if clipping.date else None,
+                'pages': clipping.pages,
+                'news_subject': clipping.news_subject,
+                'keywords': clipping.keywords,
+                'pdf_file_name': clipping.pdf_file_name,
+                'pdf_file_size': clipping.pdf_file_size,
+                'abstract': clipping.abstract[:200] + '...' if clipping.abstract and len(clipping.abstract) > 200 else clipping.abstract,
+                'download_count': clipping.download_count,
+                'created_at': clipping.created_at.isoformat()
+            } for clipping in pagination.items],
             'total': pagination.total,
             'pages': pagination.pages,
             'current_page': pagination.page,
@@ -6252,15 +6438,12 @@ def get_student_thesis():
                 thesis_list.append(thesis_data)
 
             return jsonify({
-                'thesis': thesis_list,
-                'pagination': {
-                    'page': pagination.page,
-                    'pages': pagination.pages,
-                    'per_page': pagination.per_page,
-                    'total': pagination.total,
-                    'has_next': pagination.has_next,
-                    'has_prev': pagination.has_prev
-                }
+                'items': thesis_list,
+                'total': pagination.total,
+                'pages': pagination.pages,
+                'current_page': pagination.page,
+                'has_next': pagination.has_next,
+                'has_prev': pagination.has_prev
             }), 200
 
         except Exception as table_error:

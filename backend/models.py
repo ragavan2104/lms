@@ -52,6 +52,9 @@ class User(db.Model):
     department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=True)
     batch_from = db.Column(db.Integer, nullable=True)  # Starting year of batch
     batch_to = db.Column(db.Integer, nullable=True)    # Ending year of batch
+    address = db.Column(db.Text, nullable=True)  # User address
+    phone = db.Column(db.String(20), nullable=True)  # Phone number
+    profile_picture = db.Column(db.String(255), nullable=True)  # Profile picture path
     is_active = db.Column(db.Boolean, default=True)
     first_login_completed = db.Column(db.Boolean, default=False)  # Track if user has completed mandatory password change
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
