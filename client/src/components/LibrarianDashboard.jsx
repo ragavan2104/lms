@@ -15,6 +15,7 @@ import ManageColleges from './admin/ManageColleges'
 import ManageDepartments from './admin/ManageDepartments'
 import NewsClippings from './admin/NewsClippings'
 import FineManagement from './admin/FineManagement'
+import HolidayManagement from './admin/HolidayManagement'
 import PaymentManagement from './admin/PaymentManagement'
 import ReservationManagement from './admin/ReservationManagement'
 import GateEntryManagement from './admin/GateEntryManagement'
@@ -49,6 +50,7 @@ const LibrarianDashboard = () => {
           <Route path="/return-book" element={<ReturnBook />} />
           <Route path="/circulation-history" element={<CirculationHistory />} />
           <Route path="/fine-management" element={<FineManagement />} />
+          <Route path="/holiday-management" element={<HolidayManagement />} />
           <Route path="/payment-management" element={<PaymentManagement />} />
           <Route path="/reservations" element={<ReservationManagement />} />
           <Route path="/gate-entry" element={<GateEntryManagement />} />

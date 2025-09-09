@@ -25,7 +25,7 @@ app = Flask(__name__)
 
 # Configuration
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///library.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///../instance/library.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'jwt-secret-string')
 # Set JWT token to expire after 8 hours (for gate entry sessions)
@@ -558,6 +558,60 @@ class GateEntryLog(db.Model):
     # Relationships
     user = db.relationship('User', backref='gate_logs')
     scanned_by_credential = db.relationship('GateEntryCredential', backref='scanned_logs')
+
+# Holiday model for holiday management (prevents fines on holidays)
+class Holiday(db.Model):
+    __tablename__ = 'holidays'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    description = db.Column(db.Text)
+    is_recurring = db.Column(db.Boolean, default=False)  # For annual holidays like Independence Day
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    # Relationships
+    created_by_user = db.relationship('User', backref='holidays_created')
+
+    @staticmethod
+    def is_holiday(check_date):
+        """Check if a given date is a holiday"""
+        # Check for exact date match
+        holiday = Holiday.query.filter_by(date=check_date).first()
+        if holiday:
+            return True
+        
+        # Check for recurring holidays (same month and day)
+        recurring_holidays = Holiday.query.filter_by(is_recurring=True).all()
+        for holiday in recurring_holidays:
+            if holiday.date.month == check_date.month and holiday.date.day == check_date.day:
+                return True
+        
+        return False
+
+    @staticmethod
+    def get_holidays_between(start_date, end_date):
+        """Get all holidays between two dates"""
+        holidays = []
+        
+        # Get exact date matches
+        exact_holidays = Holiday.query.filter(
+            Holiday.date >= start_date,
+            Holiday.date <= end_date
+        ).all()
+        holidays.extend(exact_holidays)
+        
+        # Get recurring holidays
+        recurring_holidays = Holiday.query.filter_by(is_recurring=True).all()
+        current_date = start_date
+        while current_date <= end_date:
+            for holiday in recurring_holidays:
+                if holiday.date.month == current_date.month and holiday.date.day == current_date.day:
+                    holidays.append(holiday)
+            current_date += timedelta(days=1)
+        
+        return holidays
 
 # Note: Blueprint imports commented out due to circular import issues
 # Will add routes directly to app for now
@@ -1187,6 +1241,7 @@ def download_books_sample():
         # Note: department, location, pages, edition are optional fields
         sample_data = {
             'access_no': ['B001', 'B002', 'B003'],
+            'call_no': ['CS.001.2024', 'CS.002.2024', 'CS.003.2024'],  # New field for call number
             'title': ['Introduction to Computer Science', 'Data Structures and Algorithms', 'Database Management Systems'],
             'author_1': ['John Smith', 'Jane Doe', 'Robert Johnson'],
             'author_2': ['Mary Wilson', '', 'Sarah Davis'],
@@ -1260,6 +1315,7 @@ def update_book(book_id):
             return jsonify({'error': 'Price must be a valid number'}), 400
 
         access_no = data.get('access_no')
+        call_no = data.get('call_no')  # New field for call number
         title = data.get('title')
         author_1 = data.get('author_1')
         author_2 = data.get('author_2')
@@ -1286,6 +1342,7 @@ def update_book(book_id):
             return jsonify({'error': 'Cannot reduce copies below issued books count'}), 400
 
         book.access_no = access_no
+        book.call_no = call_no  # Update call number
         book.title = title
         # Update multiple authors
         book.author_1 = author_1
@@ -2233,9 +2290,25 @@ def generate_automatic_fines():
         
         for circulation, book, user in overdue_circulations:
             try:
-                days_overdue = (today - circulation.due_date.date()).days
+                # Calculate days overdue excluding holidays
+                due_date = circulation.due_date.date()
+                total_days = (today - due_date).days
                 
-                if days_overdue <= 0:
+                if total_days <= 0:
+                    continue
+                
+                # Calculate working days (excluding holidays)
+                working_days_overdue = 0
+                current_date = due_date + timedelta(days=1)  # Start from day after due date
+                
+                while current_date <= today:
+                    # Check if current date is not a holiday
+                    if not Holiday.is_holiday(current_date):
+                        working_days_overdue += 1
+                    current_date += timedelta(days=1)
+                
+                # Skip if no working days overdue (all days were holidays)
+                if working_days_overdue <= 0:
                     continue
                 
                 # Check if fine already exists for this circulation
@@ -2245,22 +2318,22 @@ def generate_automatic_fines():
                 ).first()
                 
                 if not existing_fine:
-                    # Calculate fine amount
-                    fine_amount = days_overdue * daily_fine_rate
+                    # Calculate fine amount based on working days only
+                    fine_amount = working_days_overdue * daily_fine_rate
                     
                     # Create fine record
                     fine = Fine(
                         user_id=circulation.user_id,
                         circulation_id=circulation.id,
                         amount=fine_amount,
-                        reason=f'Overdue fine for "{book.title}" ({book.access_no}) - {days_overdue} days late',
+                        reason=f'Overdue fine for "{book.title}" ({book.access_no}) - {working_days_overdue} working days late (excluding holidays)',
                         status='pending',
                         created_by=1  # System generated
                     )
                     
                     db.session.add(fine)
                     created_fines += 1
-                    print(f"💰 Auto-generated fine: ₹{fine_amount:.2f} for {user.name} - {book.title} ({days_overdue} days)")
+                    print(f"💰 Auto-generated fine: ₹{fine_amount:.2f} for {user.name} - {book.title} ({working_days_overdue} working days, {total_days} total days)")
                 
                 # Update circulation status to overdue
                 if circulation.status == 'issued':
@@ -4234,6 +4307,230 @@ def get_user_fines_by_id(user_id):
             'total_pending': total_pending
         }), 200
 
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Holiday Management Routes
+
+# Get all holidays
+@app.route('/api/admin/holidays', methods=['GET'])
+@jwt_required()
+def get_holidays():
+    try:
+        current_user_id = int(get_jwt_identity())
+        current_user = User.query.get(current_user_id)
+        if not current_user or current_user.role not in ['admin', 'librarian']:
+            return jsonify({'error': 'Admin/Librarian access required'}), 403
+
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        
+        holidays_query = Holiday.query.order_by(Holiday.date.desc())
+        
+        # Pagination
+        holidays_paginated = holidays_query.paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        
+        holidays_data = []
+        for holiday in holidays_paginated.items:
+            holidays_data.append({
+                'id': holiday.id,
+                'name': holiday.name,
+                'date': holiday.date.isoformat(),
+                'description': holiday.description,
+                'is_recurring': holiday.is_recurring,
+                'created_at': holiday.created_at.isoformat(),
+                'created_by': holiday.created_by_user.name if holiday.created_by_user else 'System'
+            })
+
+        return jsonify({
+            'holidays': holidays_data,
+            'pagination': {
+                'page': page,
+                'pages': holidays_paginated.pages,
+                'per_page': per_page,
+                'total': holidays_paginated.total
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Add new holiday
+@app.route('/api/admin/holidays', methods=['POST'])
+@jwt_required()
+def add_holiday():
+    try:
+        current_user_id = int(get_jwt_identity())
+        current_user = User.query.get(current_user_id)
+        if not current_user or current_user.role not in ['admin', 'librarian']:
+            return jsonify({'error': 'Admin/Librarian access required'}), 403
+
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data.get('name'):
+            return jsonify({'error': 'Holiday name is required'}), 400
+        
+        if not data.get('date'):
+            return jsonify({'error': 'Holiday date is required'}), 400
+
+        # Parse the date
+        try:
+            holiday_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+
+        # Check if holiday already exists on this date (for non-recurring holidays)
+        if not data.get('is_recurring', False):
+            existing_holiday = Holiday.query.filter_by(date=holiday_date).first()
+            if existing_holiday:
+                return jsonify({'error': f'A holiday already exists on {holiday_date.strftime("%Y-%m-%d")}'}), 400
+
+        # Create new holiday
+        holiday = Holiday(
+            name=data['name'],
+            date=holiday_date,
+            description=data.get('description', ''),
+            is_recurring=data.get('is_recurring', False),
+            created_by=current_user_id
+        )
+
+        db.session.add(holiday)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Holiday added successfully',
+            'holiday': {
+                'id': holiday.id,
+                'name': holiday.name,
+                'date': holiday.date.isoformat(),
+                'description': holiday.description,
+                'is_recurring': holiday.is_recurring
+            }
+        }), 201
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Update holiday
+@app.route('/api/admin/holidays/<int:holiday_id>', methods=['PUT'])
+@jwt_required()
+def update_holiday(holiday_id):
+    try:
+        current_user_id = int(get_jwt_identity())
+        current_user = User.query.get(current_user_id)
+        if not current_user or current_user.role not in ['admin', 'librarian']:
+            return jsonify({'error': 'Admin/Librarian access required'}), 403
+
+        holiday = Holiday.query.get(holiday_id)
+        if not holiday:
+            return jsonify({'error': 'Holiday not found'}), 404
+
+        data = request.get_json()
+        
+        # Update fields if provided
+        if data.get('name'):
+            holiday.name = data['name']
+        
+        if data.get('date'):
+            try:
+                new_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+                # Check if another holiday exists on this date (excluding current one)
+                existing_holiday = Holiday.query.filter(
+                    Holiday.date == new_date,
+                    Holiday.id != holiday_id
+                ).first()
+                if existing_holiday:
+                    return jsonify({'error': f'Another holiday already exists on {new_date.strftime("%Y-%m-%d")}'}), 400
+                holiday.date = new_date
+            except ValueError:
+                return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+        
+        if 'description' in data:
+            holiday.description = data['description']
+        
+        if 'is_recurring' in data:
+            holiday.is_recurring = data['is_recurring']
+
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Holiday updated successfully',
+            'holiday': {
+                'id': holiday.id,
+                'name': holiday.name,
+                'date': holiday.date.isoformat(),
+                'description': holiday.description,
+                'is_recurring': holiday.is_recurring
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Delete holiday
+@app.route('/api/admin/holidays/<int:holiday_id>', methods=['DELETE'])
+@jwt_required()
+def delete_holiday(holiday_id):
+    try:
+        current_user_id = int(get_jwt_identity())
+        current_user = User.query.get(current_user_id)
+        if not current_user or current_user.role not in ['admin', 'librarian']:
+            return jsonify({'error': 'Admin/Librarian access required'}), 403
+
+        holiday = Holiday.query.get(holiday_id)
+        if not holiday:
+            return jsonify({'error': 'Holiday not found'}), 404
+
+        db.session.delete(holiday)
+        db.session.commit()
+
+        return jsonify({'message': 'Holiday deleted successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Check if a date is a holiday
+@app.route('/api/holidays/check/<date_string>', methods=['GET'])
+@jwt_required()
+def check_holiday_date(date_string):
+    try:
+        check_date = datetime.strptime(date_string, '%Y-%m-%d').date()
+        is_holiday = Holiday.is_holiday(check_date)
+        
+        holidays_on_date = []
+        if is_holiday:
+            # Get exact date matches
+            exact_holiday = Holiday.query.filter_by(date=check_date).first()
+            if exact_holiday:
+                holidays_on_date.append({
+                    'id': exact_holiday.id,
+                    'name': exact_holiday.name,
+                    'description': exact_holiday.description,
+                    'is_recurring': exact_holiday.is_recurring
+                })
+            
+            # Get recurring holidays
+            recurring_holidays = Holiday.query.filter_by(is_recurring=True).all()
+            for holiday in recurring_holidays:
+                if holiday.date.month == check_date.month and holiday.date.day == check_date.day:
+                    holidays_on_date.append({
+                        'id': holiday.id,
+                        'name': holiday.name,
+                        'description': holiday.description,
+                        'is_recurring': holiday.is_recurring
+                    })
+
+        return jsonify({
+            'date': date_string,
+            'is_holiday': is_holiday,
+            'holidays': holidays_on_date
+        }), 200
+
+    except ValueError:
+        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

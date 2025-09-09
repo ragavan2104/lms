@@ -13,6 +13,7 @@ import IssueBook from './admin/IssueBook'
 import ReturnBook from './admin/ReturnBook'
 import CirculationHistory from './admin/CirculationHistory'
 import FineManagement from './admin/FineManagement'
+import HolidayManagement from './admin/HolidayManagement'
 import PaymentManagement from './admin/PaymentManagement'
 import ReservationManagement from './admin/ReservationManagement'
 import Settings from './admin/Settings'
@@ -49,6 +50,7 @@ const AdminDashboard = () => {
           <Route path="/return-book" element={<ReturnBook />} />
           <Route path="/circulation-history" element={<CirculationHistory />} />
           <Route path="/fine-management" element={<FineManagement />} />
+          <Route path="/holiday-management" element={<HolidayManagement />} />
           <Route path="/payment-management" element={<PaymentManagement />} />
           <Route path="/reservations" element={<ReservationManagement />} />
           <Route path="/settings" element={<Settings />} />

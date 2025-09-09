@@ -1014,9 +1014,9 @@ Are you absolutely sure you want to proceed?`
                 <small>
                   Excel (.xlsx, .xls) or CSV file should contain columns: access_no, title, author_1, author_2, author_3, author_4, publisher, department, location, pages, price, edition, isbn
                   <br />
-                  <strong>Required:</strong> access_no, title, author_1, publisher, department, location, pages, price, edition
+                  <strong>Required:</strong> access_no, title, author_1, publisher, price
                   <br />
-                  <strong>Optional:</strong> author_2, author_3, author_4, isbn
+                  <strong>Optional:</strong> author_2, author_3, author_4, department, location, pages, edition, isbn
                   <br />
                   <strong>Note:</strong> Category and number_of_copies are not needed in the file - category will be set from the dropdown above, and each row will create 1 book copy.
                 </small>
@@ -1053,13 +1053,19 @@ Are you absolutely sure you want to proceed?`
                 setFormData({
                   access_no: '',
                   title: '',
-                  author: '',
+                  author_1: '',
+                  author_2: '',
+                  author_3: '',
+                  author_4: '',
                   publisher: '',
                   department: '',
                   category: '',
                   location: '',
                   number_of_copies: 1,
-                  isbn: ''
+                  isbn: '',
+                  pages: '',
+                  price: '',
+                  edition: ''
                 })
               }}>×</button>
             </div>

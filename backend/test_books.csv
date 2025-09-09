@@ -1,5 +1,0 @@
-access_no,title,author_1,publisher,price,department,location,pages,edition
-B001,Test Book 1,John Doe,Test Publisher,25.99,Computer Science,A1-S1,200,1st Edition
-B002,Test Book 2,Jane Smith,Academic Press,35.50,,,,
-B003,Test Book 3,Bob Johnson,University Books,45.00,Mathematics,B2-S3,350,2nd Edition
-B004,Test Book 4,Alice Brown,Tech Publications,55.75,,,180,
