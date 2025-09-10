@@ -5,8 +5,9 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import OPAC from './components/OPAC'
 import PublicQuestionBank from './components/PublicQuestionBank'
 import PublicNewsClippings from './components/PublicNewsClippings'
-import PublicEbooks from './components/PublicEbooks'
+import PublicEResources from './components/PublicEResources'
 import PublicThesis from './components/PublicThesis'
+import PublicJournals from './components/PublicJournals'
 import Login from './components/Login'
 import AdminDashboard from './components/AdminDashboard'
 import LibrarianDashboard from './components/LibrarianDashboard'
@@ -48,9 +49,12 @@ function App() {
             <Route path="/" element={<OPAC />} />
             <Route path="/opac" element={<OPAC />} />
             <Route path="/question-banks" element={<PublicQuestionBank />} />
-            <Route path="/ebooks" element={<PublicEbooks />} />
+            <Route path="/e-resources" element={<PublicEResources />} />
+            {/* Legacy route redirect */}
+            <Route path="/ebooks" element={<PublicEResources />} />
             <Route path="/news-clippings" element={<PublicNewsClippings />} />
             <Route path="/thesis" element={<PublicThesis />} />
+            <Route path="/journals" element={<PublicJournals />} />
 
             {/* Authentication Routes */}
             <Route path="/login" element={<Login />} />

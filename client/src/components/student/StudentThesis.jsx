@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react'
-import { 
-  Search, 
-  Download, 
-  FileText, 
+import { useNavigate } from 'react-router-dom'
+import {
+  Search,
+  Download,
+  FileText,
   Calendar,
   Building,
   GraduationCap,
   Tag,
   Filter,
   Eye,
-  User
+  User,
+  ArrowLeft
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import api from '../../services/api'
 
 const StudentThesis = () => {
+  const navigate = useNavigate()
   const [thesis, setThesis] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -28,6 +31,10 @@ const StudentThesis = () => {
   const [totalPages, setTotalPages] = useState(1)
   const [selectedThesis, setSelectedThesis] = useState(null)
   const [showDetails, setShowDetails] = useState(false)
+
+  const handleBack = () => {
+    navigate('/student/dashboard')
+  }
 
   useEffect(() => {
     fetchThesis()
@@ -106,7 +113,7 @@ const StudentThesis = () => {
   const handleDownload = async (id, title) => {
     try {
       // Use public download endpoint
-      const response = await fetch(`http://localhost:5000/api/public/thesis/${id}/download`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/api/public/thesis/${id}/download`, {
         method: 'GET',
       })
       
@@ -278,7 +285,14 @@ const StudentThesis = () => {
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="py-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <button
+                onClick={handleBack}
+                className="flex items-center space-x-2 text-white hover:text-gray-900 transition-colors mr-6"
+              >
+                <ArrowLeft size={20} />
+                <span>Back to Dashboard</span>
+              </button>
               <div className="flex items-center">
                 <FileText className="w-8 h-8 text-indigo-600 mr-3" />
                 <div>
@@ -304,7 +318,7 @@ const StudentThesis = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
                   <input
                     type="text"
                     placeholder="Search by title..."

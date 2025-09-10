@@ -187,7 +187,7 @@ const ManageEbooks = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Manage E-books</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Manage E-Resources</h1>
             <p className="text-gray-600">Add, edit, and manage digital books and resources</p>
           </div>
           <button

@@ -4030,7 +4030,7 @@ select option {
 
 /* Dashboard Link Styling */
 .dashboard-link {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: #3b82f6 !important;
   color: white !important;
   font-weight: 600 !important;
   margin-bottom: 10px !important;
@@ -4039,9 +4039,9 @@ select option {
 }
 
 .dashboard-link:hover {
-  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%) !important;
+  background: #2563eb !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3) !important;
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3) !important;
 }
 
 .dashboard-link.active {
@@ -9561,12 +9561,11 @@ select:disabled {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(55, 65, 81, 0.6);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(4px);
 }
 
 /* Modal Content */
@@ -11151,19 +11150,19 @@ select:disabled {
 }
 
 .stat-icon.book {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: #3b82f6;
 }
 
 .stat-icon.users {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: #10b981;
 }
 
 .stat-icon.circulation {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: #f59e0b;
 }
 
 .stat-icon.fines {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+  background: #ef4444;
 }
 
 .stat-info h3 {

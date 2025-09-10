@@ -33,13 +33,17 @@ const ManageStudents = ({ userRole = 'admin' }) => {
     dob: '',
     validity_date: '',
     batch_from: '',
-    batch_to: ''
+    batch_to: '',
+    category: '',
+    staff_designation: ''
   })
 
   const [bulkFile, setBulkFile] = useState(null)
   const [bulkCollegeId, setBulkCollegeId] = useState('')
   const [bulkDepartmentId, setBulkDepartmentId] = useState('')
   const [bulkRole, setBulkRole] = useState('student')
+  const [bulkCategory, setBulkCategory] = useState('')
+  const [bulkStaffDesignation, setBulkStaffDesignation] = useState('')
 
   useEffect(() => {
     fetchStudents()
@@ -124,7 +128,9 @@ const ManageStudents = ({ userRole = 'admin' }) => {
         dob: '',
         validity_date: '',
         batch_from: '',
-        batch_to: ''
+        batch_to: '',
+        category: '',
+        staff_designation: ''
       })
       fetchStudents()
     } catch (error) {
@@ -143,7 +149,13 @@ const ManageStudents = ({ userRole = 'admin' }) => {
     formData.append('file', bulkFile)
     formData.append('college_id', bulkCollegeId)
     formData.append('department_id', bulkDepartmentId)
-    formData.append('user_role', bulkUserRole)
+    formData.append('role', bulkRole)
+    if (bulkRole === 'student' && bulkCategory) {
+      formData.append('category', bulkCategory)
+    }
+    if (bulkRole === 'staff' && bulkStaffDesignation) {
+      formData.append('staff_designation', bulkStaffDesignation)
+    }
 
     try {
       const response = await axios.post('/admin/users/bulk', formData, {
@@ -738,6 +750,41 @@ const ManageStudents = ({ userRole = 'admin' }) => {
                     max="2100"
                   />
                 </div>
+
+                {/* Category field for students */}
+                {formData.role === 'student' && (
+                  <div className="form-group">
+                    <label>Category <span className="required">*</span></label>
+                    <select
+                      name="category"
+                      value={formData.category}
+                      onChange={handleInputChange}
+                      required
+                    >
+                      <option value="">Select Category</option>
+                      <option value="UG">UG (Undergraduate)</option>
+                      <option value="PG">PG (Postgraduate)</option>
+                      <option value="Research Scholar">Research Scholar</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Staff designation field for staff */}
+                {formData.role === 'staff' && (
+                  <div className="form-group">
+                    <label>Designation <span className="required">*</span></label>
+                    <select
+                      name="staff_designation"
+                      value={formData.staff_designation}
+                      onChange={handleInputChange}
+                      required
+                    >
+                      <option value="">Select Designation</option>
+                      <option value="Teaching">Teaching</option>
+                      <option value="Non-Teaching">Non-Teaching</option>
+                    </select>
+                  </div>
+                )}
               </div>
               <div className="modal-actions">
                 <button type="button" onClick={() => setShowAddForm(false)}>
@@ -797,14 +844,48 @@ const ManageStudents = ({ userRole = 'admin' }) => {
               <div className="form-group">
                 <label>Role</label>
                 <select
-                  value={bulkUserRole}
-                  onChange={(e) => setBulkUserRole(e.target.value)}
+                  value={bulkRole}
+                  onChange={(e) => setBulkRole(e.target.value)}
                   required
                 >
                   <option value="student">Student</option>
                   <option value="staff">Staff</option>
                 </select>
               </div>
+
+              {/* Category field for students */}
+              {bulkRole === 'student' && (
+                <div className="form-group">
+                  <label>Category <span className="required">*</span></label>
+                  <select
+                    value={bulkCategory}
+                    onChange={(e) => setBulkCategory(e.target.value)}
+                    required
+                  >
+                    <option value="">Select Category</option>
+                    <option value="UG">UG (Undergraduate)</option>
+                    <option value="PG">PG (Postgraduate)</option>
+                    <option value="Research Scholar">Research Scholar</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Staff designation field for staff */}
+              {bulkRole === 'staff' && (
+                <div className="form-group">
+                  <label>Designation <span className="required">*</span></label>
+                  <select
+                    value={bulkStaffDesignation}
+                    onChange={(e) => setBulkStaffDesignation(e.target.value)}
+                    required
+                  >
+                    <option value="">Select Designation</option>
+                    <option value="Teaching">Teaching</option>
+                    <option value="Non-Teaching">Non-Teaching</option>
+                  </select>
+                </div>
+              )}
+
               <div className="form-group">
                 <label>Excel File</label>
                 <input

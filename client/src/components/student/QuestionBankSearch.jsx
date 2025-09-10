@@ -172,7 +172,7 @@ const QuestionBankSearch = () => {
         <div className="bg-white p-6 rounded-lg shadow-sm mb-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
-              <Search className="w-5 h-5 absolute left-3 top-3 text-gray-400" />
+              <Search className="w-5 h-5 absolute right-3 top-3 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search by subject, code, or regulation..."

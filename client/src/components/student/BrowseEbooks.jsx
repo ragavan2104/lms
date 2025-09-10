@@ -1,17 +1,17 @@
 import React from 'react'
 
-const BrowseEbooks = () => {
+const BrowseEResources = () => {
   return (
-    <div className="browse-ebooks">
+    <div className="browse-e-resources">
       <div className="page-header">
-        <h1>Browse E-books</h1>
-        <p>Explore our digital book collection</p>
+        <h1>Browse E-Resources</h1>
+        <p>Explore our digital resources collection</p>
       </div>
       <div className="content-placeholder">
-        <p>E-book browsing interface coming soon...</p>
+        <p>E-resource browsing interface coming soon...</p>
       </div>
     </div>
   )
 }
 
-export default BrowseEbooks
+export default BrowseEResources

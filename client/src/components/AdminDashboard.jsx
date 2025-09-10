@@ -8,6 +8,7 @@ import ManageLibrarians from './admin/ManageLibrarians'
 import ManageColleges from './admin/ManageColleges'
 import ManageDepartments from './admin/ManageDepartments'
 import ManageThesis from './admin/ManageThesis'
+import ManageJournals from './admin/ManageJournals'
 import NewsClippings from './admin/NewsClippings'
 import IssueBook from './admin/IssueBook'
 import ReturnBook from './admin/ReturnBook'
@@ -45,6 +46,7 @@ const AdminDashboard = () => {
           <Route path="/colleges" element={<ManageColleges />} />
           <Route path="/departments" element={<ManageDepartments />} />
           <Route path="/thesis" element={<ManageThesis />} />
+          <Route path="/journals" element={<ManageJournals />} />
           <Route path="/news" element={<NewsClippings />} />
           <Route path="/issue-book" element={<IssueBook />} />
           <Route path="/return-book" element={<ReturnBook />} />

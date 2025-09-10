@@ -8,6 +8,7 @@ import IssueBook from './librarian/IssueBook'
 import ManageBooks from './admin/ManageBooks'
 import ManageEbooks from './admin/ManageEbooks'
 import ManageThesis from './admin/ManageThesis'
+import ManageJournals from './admin/ManageJournals'
 import ReturnBook from './admin/ReturnBook'
 import CirculationHistory from './admin/CirculationHistory'
 import ManageStudents from './admin/ManageStudents'
@@ -43,6 +44,7 @@ const LibrarianDashboard = () => {
           <Route path="/colleges" element={<ManageColleges userRole="librarian" />} />
           <Route path="/departments" element={<ManageDepartments userRole="librarian" />} />
           <Route path="/thesis" element={<ManageThesis />} />
+          <Route path="/journals" element={<ManageJournals userRole="librarian" />} />
           <Route path="/question-banks" element={<QuestionBankManagement />} />
           <Route path="/news-clippings" element={<NewsClippings />} />
           {/* Circulation Routes */}

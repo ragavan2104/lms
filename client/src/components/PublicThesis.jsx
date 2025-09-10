@@ -238,7 +238,7 @@ const PublicThesis = () => {
             <nav className="hidden md:flex items-center space-x-6">
               <a href="/" className="text-gray-600 hover:text-gray-900 transition-colors">OPAC</a>
               <a href="/question-banks" className="text-gray-600 hover:text-gray-900 transition-colors">Question Banks</a>
-              <a href="/ebooks" className="text-gray-600 hover:text-gray-900 transition-colors">E-books</a>
+              <a href="/e-resources" className="text-gray-600 hover:text-gray-900 transition-colors">E-Resources</a>
               <a href="/news-clippings" className="text-gray-600 hover:text-gray-900 transition-colors">News Clippings</a>
               <a href="/thesis" className="text-blue-600 font-medium border-b-2 border-blue-600 pb-1">Thesis</a>
             </nav>
@@ -269,7 +269,7 @@ const PublicThesis = () => {
               <div className="flex flex-col space-y-3">
                 <a href="/" className="text-gray-600 hover:text-gray-900 transition-colors">OPAC</a>
                 <a href="/question-banks" className="text-gray-600 hover:text-gray-900 transition-colors">Question Banks</a>
-                <a href="/ebooks" className="text-gray-600 hover:text-gray-900 transition-colors">E-books</a>
+                <a href="/e-resources" className="text-gray-600 hover:text-gray-900 transition-colors">E-Resources</a>
                 <a href="/news-clippings" className="text-gray-600 hover:text-gray-900 transition-colors">News Clippings</a>
                 <a href="/thesis" className="text-blue-600 font-medium">Thesis</a>
               </div>
@@ -624,7 +624,7 @@ const PublicThesis = () => {
               <ul className="space-y-2">
                 <li><a href="/" className="text-gray-300 hover:text-white transition-colors">OPAC</a></li>
                 <li><a href="/thesis" className="text-gray-300 hover:text-white transition-colors">Thesis</a></li>
-                <li><a href="/ebooks" className="text-gray-300 hover:text-white transition-colors">E-books</a></li>
+                <li><a href="/e-resources" className="text-gray-300 hover:text-white transition-colors">E-Resources</a></li>
                 <li><a href="/question-banks" className="text-gray-300 hover:text-white transition-colors">Question Banks</a></li>
               </ul>
             </div>

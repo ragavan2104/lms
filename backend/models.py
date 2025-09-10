@@ -1,15 +1,13 @@
 from datetime import datetime, date
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_sqlalchemy import SQLAlchemy
 import string
 import random
 
-# db will be imported from the main app
-db = None
+# Initialize db as a placeholder - will be set by the main app
+db = SQLAlchemy()
 
-def get_db():
-    return db
-
-class College(get_db().Model):
+class College(db.Model):
     __tablename__ = 'colleges'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -52,6 +50,11 @@ class User(db.Model):
     department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=True)
     batch_from = db.Column(db.Integer, nullable=True)  # Starting year of batch
     batch_to = db.Column(db.Integer, nullable=True)    # Ending year of batch
+
+    # New fields for enhanced categorization
+    category = db.Column(db.String(50), nullable=True)  # For students: UG, PG, Research Scholar
+    staff_designation = db.Column(db.String(50), nullable=True)  # For staff: Teaching, Non-Teaching
+
     address = db.Column(db.Text, nullable=True)  # User address
     phone = db.Column(db.String(20), nullable=True)  # Phone number
     profile_picture = db.Column(db.String(255), nullable=True)  # Profile picture path
@@ -91,6 +94,7 @@ class Book(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     access_no = db.Column(db.String(50), nullable=False, unique=True)  # Access number
+    call_no = db.Column(db.String(100), nullable=True)  # Call number for library classification
     isbn = db.Column(db.String(20))
     title = db.Column(db.String(200), nullable=False)
 
@@ -119,6 +123,12 @@ class Book(db.Model):
 
     location = db.Column(db.String(50))  # Shelf location
     description = db.Column(db.Text)
+
+    # New procurement fields
+    supplier_name = db.Column(db.String(200), nullable=True)  # Supplier/vendor name
+    invoice_number = db.Column(db.String(100), nullable=True)  # Invoice number
+    invoice_date = db.Column(db.Date, nullable=True)  # Invoice date
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
@@ -150,7 +160,7 @@ class Book(db.Model):
 
 class Ebook(db.Model):
     __tablename__ = 'ebooks'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     author = db.Column(db.String(200), nullable=False)
@@ -163,6 +173,28 @@ class Ebook(db.Model):
     description = db.Column(db.Text)
     download_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Journal(db.Model):
+    __tablename__ = 'journals'
+
+    id = db.Column(db.Integer, primary_key=True)
+    access_no = db.Column(db.String(50), nullable=False, unique=True)
+    journal_name = db.Column(db.String(300), nullable=False)
+    publication = db.Column(db.String(200), nullable=False)
+    journal_type = db.Column(db.String(50), nullable=False)  # National Journal, International Journal
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class Journal(db.Model):
+    __tablename__ = 'journals'
+
+    id = db.Column(db.Integer, primary_key=True)
+    access_no = db.Column(db.String(50), nullable=False, unique=True)
+    journal_name = db.Column(db.String(300), nullable=False)
+    publication = db.Column(db.String(200), nullable=False)
+    journal_type = db.Column(db.String(50), nullable=False)  # National Journal, International Journal
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class Circulation(db.Model):
     __tablename__ = 'circulations'

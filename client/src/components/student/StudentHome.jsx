@@ -141,7 +141,7 @@ const StudentHome = () => {
     try {
       setLoading(true)
       const token = localStorage.getItem('token')
-      const response = await axios.get('http://localhost:5000/api/student/dashboard', {
+      const response = await axios.get('/student/dashboard', {
         headers: { Authorization: `Bearer ${token}` }
       })
       setDashboardData(response.data)
@@ -288,18 +288,18 @@ const StudentHome = () => {
             </div>
           </a>
 
-          <a href="/student/ebooks" className="quick-action-card browse-ebooks">
+          <a href="/student/e-resources" className="quick-action-card browse-e-resources">
             <div className="card-header">
               <div className="action-icon-wrapper">
                 <BookOpen size={24} />
               </div>
               <div className="action-details">
-                <h3>Browse E-books</h3>
-                <p>Access digital books and resources</p>
+                <h3>Browse E-Resources</h3>
+                <p>Access digital resources and e-books</p>
               </div>
             </div>
             <div className="card-footer">
-              <span className="action-link">View E-books →</span>
+              <span className="action-link">View E-Resources →</span>
             </div>
           </a>
 

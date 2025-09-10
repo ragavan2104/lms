@@ -217,7 +217,6 @@ class Book(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     access_no = db.Column(db.String(50), nullable=False, unique=True)
-    call_no = db.Column(db.String(100), nullable=True)  # Call number for library cataloging
     title = db.Column(db.String(200), nullable=False)
     # Multiple authors support
     author_1 = db.Column(db.String(200), nullable=False)  # Primary author (required)
@@ -256,6 +255,17 @@ class Ebook(db.Model):
 
     # Relationships
     creator = db.relationship('User', backref='ebooks')
+
+class Journal(db.Model):
+    __tablename__ = 'journals'
+
+    id = db.Column(db.Integer, primary_key=True)
+    access_no = db.Column(db.String(50), nullable=False, unique=True)
+    journal_name = db.Column(db.String(300), nullable=False)
+    publication = db.Column(db.String(200), nullable=False)
+    journal_type = db.Column(db.String(50), nullable=False)  # National Journal, International Journal
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class QuestionBank(db.Model):
     __tablename__ = 'question_banks'
@@ -577,50 +587,19 @@ class Holiday(db.Model):
 
     @staticmethod
     def is_holiday(check_date):
-        """Check if a given date is a holiday - returns Holiday object if found, None otherwise"""
+        """Check if a given date is a holiday"""
         # Check for exact date match
         holiday = Holiday.query.filter_by(date=check_date).first()
         if holiday:
-            return holiday
-
+            return True
+        
         # Check for recurring holidays (same month and day)
         recurring_holidays = Holiday.query.filter_by(is_recurring=True).all()
         for holiday in recurring_holidays:
             if holiday.date.month == check_date.month and holiday.date.day == check_date.day:
-                return holiday
-
-        return None
-
-    @staticmethod
-    def get_upcoming_holidays(days_ahead=30):
-        """Get upcoming holidays within the specified number of days"""
-        from datetime import date, timedelta
-
-        today = date.today()
-        end_date = today + timedelta(days=days_ahead)
-
-        # Get exact date matches
-        exact_holidays = Holiday.query.filter(
-            Holiday.date >= today,
-            Holiday.date <= end_date
-        ).order_by(Holiday.date).all()
-
-        holidays = list(exact_holidays)
-
-        # Check for recurring holidays
-        recurring_holidays = Holiday.query.filter_by(is_recurring=True).all()
-        current_date = today
-        while current_date <= end_date:
-            for holiday in recurring_holidays:
-                if (holiday.date.month == current_date.month and
-                    holiday.date.day == current_date.day and
-                    holiday not in holidays):  # Avoid duplicates
-                    holidays.append(holiday)
-            current_date += timedelta(days=1)
-
-        # Sort by date
-        holidays.sort(key=lambda h: (h.date.month, h.date.day))
-        return holidays
+                return True
+        
+        return False
 
     @staticmethod
     def get_holidays_between(start_date, end_date):
@@ -949,10 +928,7 @@ def get_books():
             query = query.filter(
                 Book.title.contains(search) |
                 Book.author.contains(search) |
-                Book.access_no.contains(search) |
-                Book.call_no.contains(search) |
-                Book.author_1.contains(search) |
-                Book.isbn.contains(search)
+                Book.access_no.contains(search)
             )
 
         books = query.paginate(page=page, per_page=per_page, error_out=False)
@@ -961,7 +937,6 @@ def get_books():
             'books': [{
                 'id': book.id,
                 'access_no': book.access_no,
-                'call_no': getattr(book, 'call_no', None),  # Call number field
                 'title': book.title,
                 # Multiple authors
                 'author_1': getattr(book, 'author_1', None) or book.author,
@@ -1009,17 +984,6 @@ def create_book():
         for field in required_fields:
             if not data.get(field):
                 return jsonify({'error': f'{field.replace("_", " ").title()} is required'}), 400
-
-        # Validate call_no field if provided
-        call_no = data.get('call_no', '').strip() if data.get('call_no') else None
-        if call_no:
-            # Basic validation for call number format
-            if len(call_no) > 100:
-                return jsonify({'error': 'Call number cannot exceed 100 characters'}), 400
-            # Allow alphanumeric characters, dots, spaces, and common library classification symbols
-            import re
-            if not re.match(r'^[A-Za-z0-9\.\s\-\/]+$', call_no):
-                return jsonify({'error': 'Call number contains invalid characters. Use only letters, numbers, dots, spaces, hyphens, and slashes.'}), 400
 
         # Validate optional numeric fields if provided
         pages = None
@@ -1098,7 +1062,6 @@ def create_book():
 
             book = Book(
                 access_no=access_no,
-                call_no=call_no,  # Call number field
                 title=data.get('title'),
                 # Multiple authors
                 author_1=data.get('author_1'),
@@ -1180,7 +1143,7 @@ def bulk_create_books():
         # Validate required columns (number_of_copies removed - will default to 1)
         # Made department, location, pages, edition optional for bulk upload
         required_columns = ['access_no', 'title', 'author_1', 'publisher', 'price']
-        optional_columns = ['call_no', 'author_2', 'author_3', 'author_4', 'isbn', 'department', 'location', 'pages', 'edition']
+        optional_columns = ['author_2', 'author_3', 'author_4', 'isbn', 'department', 'location', 'pages', 'edition']
 
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
@@ -1210,19 +1173,6 @@ def bulk_create_books():
                     errors.append(f"Row {index + 1}: Author 1 is required")
                     continue
 
-                # Validate call_no field if provided
-                call_no_value = None
-                if 'call_no' in df.columns and not pd.isna(row.get('call_no')):
-                    call_no_value = str(row['call_no']).strip()
-                    if len(call_no_value) > 100:
-                        errors.append(f"Row {index + 1}: Call number cannot exceed 100 characters")
-                        continue
-                    # Basic validation for call number format
-                    import re
-                    if not re.match(r'^[A-Za-z0-9\.\s\-\/]+$', call_no_value):
-                        errors.append(f"Row {index + 1}: Call number contains invalid characters")
-                        continue
-
                 # Validate optional numeric fields if provided
                 pages_value = None
                 if 'pages' in df.columns and not pd.isna(row.get('pages')):
@@ -1241,7 +1191,6 @@ def bulk_create_books():
 
                 book = Book(
                     access_no=access_no,
-                    call_no=call_no_value,  # Call number field
                     title=row['title'],
                     # Multiple authors
                     author_1=row['author_1'],
@@ -2359,14 +2308,13 @@ def generate_automatic_fines():
                 if total_days <= 0:
                     continue
                 
-                # Calculate working days (excluding holidays and Sundays)
+                # Calculate working days (excluding holidays)
                 working_days_overdue = 0
                 current_date = due_date + timedelta(days=1)  # Start from day after due date
-
+                
                 while current_date <= today:
-                    # Check if current date is not a holiday and not a Sunday
-                    # weekday() returns 6 for Sunday
-                    if not Holiday.is_holiday(current_date) and current_date.weekday() != 6:
+                    # Check if current date is not a holiday
+                    if not Holiday.is_holiday(current_date):
                         working_days_overdue += 1
                     current_date += timedelta(days=1)
                 
@@ -2389,14 +2337,14 @@ def generate_automatic_fines():
                         user_id=circulation.user_id,
                         circulation_id=circulation.id,
                         amount=fine_amount,
-                        reason=f'Overdue fine for "{book.title}" ({book.access_no}) - {working_days_overdue} working days late (excluding holidays and Sundays)',
+                        reason=f'Overdue fine for "{book.title}" ({book.access_no}) - {working_days_overdue} working days late (excluding holidays)',
                         status='pending',
                         created_by=1  # System generated
                     )
                     
                     db.session.add(fine)
                     created_fines += 1
-                    print(f"💰 Auto-generated fine: ₹{fine_amount:.2f} for {user.name} - {book.title} ({working_days_overdue} working days, {total_days} total days, excluding holidays and Sundays)")
+                    print(f"💰 Auto-generated fine: ₹{fine_amount:.2f} for {user.name} - {book.title} ({working_days_overdue} working days, {total_days} total days)")
                 
                 # Update circulation status to overdue
                 if circulation.status == 'issued':
@@ -4555,42 +4503,6 @@ def delete_holiday(holiday_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Get upcoming holidays
-@app.route('/api/admin/holidays/upcoming', methods=['GET'])
-@jwt_required()
-def get_upcoming_holidays():
-    try:
-        current_user_id = int(get_jwt_identity())
-        current_user = User.query.get(current_user_id)
-
-        if not current_user or current_user.role != 'admin':
-            return jsonify({'error': 'Admin access required'}), 403
-
-        days_ahead = request.args.get('days', 30, type=int)
-
-        upcoming_holidays = Holiday.get_upcoming_holidays(days_ahead)
-
-        holidays_data = []
-        for holiday in upcoming_holidays:
-            holidays_data.append({
-                'id': holiday.id,
-                'name': holiday.name,
-                'date': holiday.date.isoformat(),
-                'description': holiday.description,
-                'is_recurring': holiday.is_recurring,
-                'created_at': holiday.created_at.isoformat() if holiday.created_at else None,
-                'created_by': holiday.created_by_user.name if holiday.created_by_user else 'Unknown'
-            })
-
-        return jsonify({
-            'holidays': holidays_data,
-            'days_ahead': days_ahead,
-            'count': len(holidays_data)
-        }), 200
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 # Check if a date is a holiday
 @app.route('/api/holidays/check/<date_string>', methods=['GET'])
 @jwt_required()
@@ -5788,44 +5700,140 @@ def get_dashboard_stats():
         if not current_user or current_user.role not in ['admin', 'librarian']:
             return jsonify({'error': 'Admin/Librarian access required'}), 403
 
-        # Get total books
-        total_books = Book.query.count()
+        # Book Statistics
+        # 1. Total number of unique titles in the book collection (distinct titles)
+        total_book_titles = db.session.query(db.func.count(db.func.distinct(Book.title))).scalar() or 0
 
-        # Get total e-books
-        total_ebooks = Ebook.query.count()
+        # 2. Total number of volumes in the book collection (sum of all copies)
+        total_book_volumes = db.session.query(db.func.sum(Book.number_of_copies)).scalar() or 0
 
-        # Get total students and librarians
-        total_students = User.query.filter_by(role='student').count()
-        total_librarians = User.query.filter_by(role='librarian').count()
+        # E-Resources Statistics
+        # 3. Total number of e-books in e-resources
+        total_ebooks = Ebook.query.filter_by(type='E-book').count()
 
-        # Get total colleges
-        total_colleges = College.query.count()
+        # 4. Total number of e-journals in e-resources
+        total_ejournals = Ebook.query.filter_by(type='E-journal').count()
 
-        # Get active circulations (issued books)
-        active_circulations = Circulation.query.filter_by(status='issued').count()
+        # Journal Statistics
+        # 5. Total number of journals (overall count)
+        total_journals = Journal.query.count()
 
-        # Get total available books
-        available_books = db.session.query(db.func.sum(Book.available_copies)).scalar() or 0
+        # 6. Total number of national journals
+        total_national_journals = Journal.query.filter_by(journal_type='National Journal').count()
 
-        # Get total fines
-        total_fines = db.session.query(db.func.sum(Fine.amount)).filter_by(status='pending').scalar() or 0
+        # 7. Total number of international journals
+        total_international_journals = Journal.query.filter_by(journal_type='International Journal').count()
 
-        # Get overdue books
-        overdue_books = Circulation.query.filter(
-            Circulation.status == 'issued',
-            Circulation.due_date < datetime.utcnow()
-        ).count()
+        # Thesis Statistics
+        # 8. Total number of thesis documents
+        total_thesis = Thesis.query.count()
 
         return jsonify({
-            'totalBooks': total_books,
+            'totalBookTitles': total_book_titles,
+            'totalBookVolumes': total_book_volumes,
             'totalEbooks': total_ebooks,
-            'totalStudents': total_students,
-            'totalLibrarians': total_librarians,
-            'totalColleges': total_colleges,
-            'activeCirculations': active_circulations,
-            'availableBooks': available_books,
-            'totalFines': total_fines,
-            'overdueBooks': overdue_books
+            'totalEjournals': total_ejournals,
+            'totalJournals': total_journals,
+            'totalNationalJournals': total_national_journals,
+            'totalInternationalJournals': total_international_journals,
+            'totalThesis': total_thesis
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Comprehensive Overall Report API
+@app.route('/api/admin/overall-report', methods=['GET'])
+@jwt_required()
+def get_overall_report():
+    try:
+        current_user_id = int(get_jwt_identity())
+        current_user = User.query.get(current_user_id)
+        if not current_user or current_user.role not in ['admin', 'librarian']:
+            return jsonify({'error': 'Admin/Librarian access required'}), 403
+
+        # Books (Physical Books)
+        total_book_titles = db.session.query(db.func.count(db.func.distinct(Book.title))).scalar() or 0
+        total_book_volumes = db.session.query(db.func.sum(Book.number_of_copies)).scalar() or 0
+        available_book_volumes = db.session.query(db.func.sum(Book.available_copies)).scalar() or 0
+
+        # E-Resources (E-books and E-journals from Ebook table)
+        total_ebooks = Ebook.query.filter_by(type='E-book').count()
+        total_ejournals_from_ebooks = Ebook.query.filter_by(type='E-journal').count()
+        total_eresources = Ebook.query.count()  # All e-resources
+
+        # Journals (from Journal table)
+        total_journals = Journal.query.count()
+        total_national_journals = Journal.query.filter_by(journal_type='National Journal').count()
+        total_international_journals = Journal.query.filter_by(journal_type='International Journal').count()
+
+        # Thesis Documents
+        total_thesis = Thesis.query.count()
+
+        # News Clippings (assuming they are stored in a separate table or as a type)
+        # For now, we'll set this to 0 as there's no specific news clippings table found
+        total_news_clippings = 0
+
+        # Calculate totals
+        total_physical_resources = total_book_volumes
+        total_digital_resources = total_eresources + total_journals
+        total_all_resources = total_physical_resources + total_digital_resources + total_thesis + total_news_clippings
+
+        return jsonify({
+            'summary': {
+                'totalAllResources': total_all_resources,
+                'totalPhysicalResources': total_physical_resources,
+                'totalDigitalResources': total_digital_resources
+            },
+            'books': {
+                'totalTitles': total_book_titles,
+                'totalVolumes': total_book_volumes,
+                'availableVolumes': available_book_volumes,
+                'issuedVolumes': total_book_volumes - available_book_volumes
+            },
+            'eresources': {
+                'totalEbooks': total_ebooks,
+                'totalEjournals': total_ejournals_from_ebooks,
+                'totalEresources': total_eresources
+            },
+            'journals': {
+                'totalJournals': total_journals,
+                'nationalJournals': total_national_journals,
+                'internationalJournals': total_international_journals
+            },
+            'thesis': {
+                'totalThesis': total_thesis
+            },
+            'newsClippings': {
+                'totalNewsClippings': total_news_clippings
+            },
+            'categoryBreakdown': [
+                {
+                    'category': 'Physical Books',
+                    'count': total_book_volumes,
+                    'percentage': round((total_book_volumes / total_all_resources * 100) if total_all_resources > 0 else 0, 2)
+                },
+                {
+                    'category': 'E-Resources',
+                    'count': total_eresources,
+                    'percentage': round((total_eresources / total_all_resources * 100) if total_all_resources > 0 else 0, 2)
+                },
+                {
+                    'category': 'Journals',
+                    'count': total_journals,
+                    'percentage': round((total_journals / total_all_resources * 100) if total_all_resources > 0 else 0, 2)
+                },
+                {
+                    'category': 'Thesis Documents',
+                    'count': total_thesis,
+                    'percentage': round((total_thesis / total_all_resources * 100) if total_all_resources > 0 else 0, 2)
+                },
+                {
+                    'category': 'News Clippings',
+                    'count': total_news_clippings,
+                    'percentage': round((total_news_clippings / total_all_resources * 100) if total_all_resources > 0 else 0, 2)
+                }
+            ]
         }), 200
 
     except Exception as e:

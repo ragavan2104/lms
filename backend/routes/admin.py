@@ -190,6 +190,10 @@ def create_user():
         batch_from = data.get('batch_from')  # Starting year of batch
         batch_to = data.get('batch_to')      # Ending year of batch
 
+        # New fields for enhanced categorization
+        category = data.get('category')  # For students: UG, PG, Research Scholar
+        staff_designation = data.get('staff_designation')  # For staff: Teaching, Non-Teaching
+
         if not all([user_id, name, email, designation, dob, validity_date]):
             return jsonify({'error': 'All fields are required'}), 400
 
@@ -234,7 +238,9 @@ def create_user():
             college_id=college_id,
             department_id=department_id,
             batch_from=batch_from,
-            batch_to=batch_to
+            batch_to=batch_to,
+            category=category,
+            staff_designation=staff_designation
         )
         user.set_password(password)
 
@@ -321,6 +327,9 @@ def bulk_create_users():
         file = request.files['file']
         college_id = request.form.get('college_id')
         department_id = request.form.get('department_id')
+        role = request.form.get('role', 'student')  # Default to student
+        category = request.form.get('category')  # For students: UG, PG, Research Scholar
+        staff_designation = request.form.get('staff_designation')  # For staff: Teaching, Non-Teaching
 
         if not college_id or not department_id:
             return jsonify({'error': 'College and department are required'}), 400
@@ -367,14 +376,16 @@ def bulk_create_users():
                     username=username,
                     name=name,
                     email=email,
-                    role='student',
-                    designation='student',
+                    role=role,
+                    designation=role,  # Use role as designation for backward compatibility
                     dob=dob,
                     validity_date=validity_date,
                     college_id=college_id,
                     department_id=department_id,
                     batch_from=batch_from,
-                    batch_to=batch_to
+                    batch_to=batch_to,
+                    category=category if role == 'student' else None,
+                    staff_designation=staff_designation if role == 'staff' else None
                 )
                 user.set_password(password)
 

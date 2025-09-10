@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Book, Users, Monitor, RotateCcw, Building, GraduationCap, IndianRupee, AlertTriangle, UserCheck } from 'lucide-react'
+import { Book, Users, Monitor, RotateCcw, Building, GraduationCap, IndianRupee, AlertTriangle, UserCheck, Library, Globe, Newspaper, FileText } from 'lucide-react'
 import api from '../../services/api'
 
 const LibrarianHome = () => {
   const navigate = useNavigate()
   const [stats, setStats] = useState({
-    totalBooks: 0,
+    totalBookTitles: 0,
+    totalBookVolumes: 0,
     totalEbooks: 0,
-    totalStudents: 0,
-    totalLibrarians: 0,
-    totalColleges: 0,
-    activeCirculations: 0,
-    availableBooks: 0,
-    totalFines: 0,
-    overdueBooks: 0
+    totalEjournals: 0,
+    totalJournals: 0,
+    totalNationalJournals: 0,
+    totalInternationalJournals: 0,
+    totalThesis: 0
   })
   const [loading, setLoading] = useState(true)
 
@@ -38,15 +37,14 @@ const LibrarianHome = () => {
 
       // Fallback to default values if API fails
       setStats({
-        totalBooks: 0,
+        totalBookTitles: 0,
+        totalBookVolumes: 0,
         totalEbooks: 0,
-        totalStudents: 0,
-        totalLibrarians: 0,
-        totalColleges: 0,
-        activeCirculations: 0,
-        availableBooks: 0,
-        totalFines: 0,
-        overdueBooks: 0
+        totalEjournals: 0,
+        totalJournals: 0,
+        totalNationalJournals: 0,
+        totalInternationalJournals: 0,
+        totalThesis: 0
       })
     } finally {
       setLoading(false)
@@ -55,60 +53,60 @@ const LibrarianHome = () => {
 
   const statCards = [
     {
-      title: 'Total Books',
-      value: stats.totalBooks,
+      title: 'Book Titles',
+      value: stats.totalBookTitles,
       icon: Book,
       color: 'blue',
-      description: 'Books in collection'
+      description: 'Total number of titles in collection'
     },
     {
-      title: 'Total E-books',
+      title: 'Book Volumes',
+      value: stats.totalBookVolumes,
+      icon: Library,
+      color: 'indigo',
+      description: 'Total number of volumes in collection'
+    },
+    {
+      title: 'E-Books',
       value: stats.totalEbooks,
       icon: Monitor,
-      color: 'purple',
-      description: 'Digital books available'
-    },
-    {
-      title: 'Total Students',
-      value: stats.totalStudents,
-      icon: GraduationCap,
       color: 'green',
-      description: 'Registered students'
+      description: 'Total number of e-books'
     },
     {
-      title: 'Active Circulations',
-      value: stats.activeCirculations,
-      icon: RotateCcw,
+      title: 'E-Journals',
+      value: stats.totalEjournals,
+      icon: Globe,
       color: 'teal',
-      description: 'Books currently issued'
+      description: 'Total number of e-journals'
     },
     {
-      title: 'Available Books',
-      value: stats.availableBooks,
-      icon: Book,
-      color: 'green',
-      description: 'Books available for borrowing'
+      title: 'Total Journals',
+      value: stats.totalJournals,
+      icon: Newspaper,
+      color: 'purple',
+      description: 'Overall journal count'
     },
     {
-      title: 'Pending Fines',
-      value: `₹${stats.totalFines.toFixed(2)}`,
-      icon: IndianRupee,
-      color: 'yellow',
-      description: 'Total unpaid fines'
-    },
-    {
-      title: 'Overdue Books',
-      value: stats.overdueBooks,
-      icon: AlertTriangle,
-      color: 'red',
-      description: 'Books past due date'
-    },
-    {
-      title: 'Total Colleges',
-      value: stats.totalColleges,
-      icon: Building,   
+      title: 'National Journals',
+      value: stats.totalNationalJournals,
+      icon: Newspaper,
       color: 'orange',
-      description: 'Registered colleges'
+      description: 'Total number of national journals'
+    },
+    {
+      title: 'International Journals',
+      value: stats.totalInternationalJournals,
+      icon: Newspaper,
+      color: 'red',
+      description: 'Total number of international journals'
+    },
+    {
+      title: 'Thesis Documents',
+      value: stats.totalThesis,
+      icon: FileText,
+      color: 'yellow',
+      description: 'Total number of thesis documents'
     }
   ]
 
@@ -132,7 +130,7 @@ const LibrarianHome = () => {
                 <Icon size={24} />
               </div>
               <div className="stat-content">
-                <h3>{stat.value}</h3>
+                <h3>{stat.value.toLocaleString()}</h3>
                 <p className="stat-title">{stat.title}</p>
                 <span className="stat-description">{stat.description}</span>
               </div>

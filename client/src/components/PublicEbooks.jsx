@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { 
-  Search, 
-  ExternalLink, 
-  BookOpen, 
+import {
+  Search,
+  ExternalLink,
+  BookOpen,
   Filter,
   ArrowLeft,
   Eye,
@@ -10,6 +10,7 @@ import {
   Tag
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import { getApiBaseUrl } from '../utils/apiConfig'
 
 const PublicEbooks = () => {
   const [ebooks, setEbooks] = useState([])
@@ -37,7 +38,7 @@ const PublicEbooks = () => {
         ...(selectedType && { type: selectedType })
       })
 
-      const response = await fetch(`http://localhost:5000/api/public/ebooks?${params}`)
+      const response = await fetch(`${getApiBaseUrl().replace('/api', '')}/api/public/ebooks?${params}`)
       if (response.ok) {
         const data = await response.json()
         setEbooks(data.ebooks)
@@ -53,7 +54,7 @@ const PublicEbooks = () => {
 
   const fetchEbookTypes = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/public/ebooks/types')
+      const response = await fetch(`${getApiBaseUrl().replace('/api', '')}/api/public/ebooks/types`)
       if (response.ok) {
         const data = await response.json()
         setEbookTypes(data.ebook_types)

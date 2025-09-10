@@ -34,7 +34,7 @@ const CounterReports = () => {
   const fetchColleges = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await axios.get('http://localhost:5000/api/admin/colleges', {
+      const response = await axios.get('/admin/colleges', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -49,7 +49,7 @@ const CounterReports = () => {
   const fetchDepartments = async (collegeId) => {
     try {
       const token = localStorage.getItem('token')
-      const response = await axios.get(`http://localhost:5000/api/admin/departments?college_id=${collegeId}`, {
+      const response = await axios.get(`/admin/departments?college_id=${collegeId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

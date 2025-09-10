@@ -1,14 +1,19 @@
 import React from 'react'
-import { 
-  BookOpen, Calendar, Clock, DollarSign, User, 
+import { useNavigate } from 'react-router-dom'
+import {
+  BookOpen, Calendar, Clock, DollarSign, User,
   Search, Filter, Eye, RotateCcw, AlertCircle,
   CheckCircle, XCircle, Plus, Minus, Star,
   Download, RefreshCw, Bell, Settings, MapPin,
-  Hash, Building
+  Hash, Building, Monitor, FileText, Newspaper,
+  HelpCircle
 } from 'lucide-react'
 
 // Overview Tab Component
-export const OverviewTab = ({ dashboardData, onReserveBook, onRenewBook, onCancelReservation, formatDate, getDaysRemaining, getStatusColor }) => (
+export const OverviewTab = ({ dashboardData, onReserveBook, onRenewBook, onCancelReservation, formatDate, getDaysRemaining, getStatusColor }) => {
+  const navigate = useNavigate()
+
+  return (
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Current Books */}
@@ -132,17 +137,17 @@ export const OverviewTab = ({ dashboardData, onReserveBook, onRenewBook, onCance
       </div>
       <div className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors">
+          <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 transition-colors">
             <Search className="mx-auto h-8 w-8 text-gray-400" />
             <p className="mt-2 text-sm font-medium text-gray-900">Browse Books</p>
             <p className="text-xs text-gray-500">Find your next read</p>
           </button>
-          <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors">
+          <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 transition-colors">
             <RefreshCw className="mx-auto h-8 w-8 text-gray-400" />
             <p className="mt-2 text-sm font-medium text-gray-900">Renew Books</p>
             <p className="text-xs text-gray-500">Extend due dates</p>
           </button>
-          <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors">
+          <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 transition-colors">
             <Calendar className="mx-auto h-8 w-8 text-gray-400" />
             <p className="mt-2 text-sm font-medium text-gray-900">View History</p>
             <p className="text-xs text-gray-500">See past borrowings</p>
@@ -150,8 +155,11 @@ export const OverviewTab = ({ dashboardData, onReserveBook, onRenewBook, onCance
         </div>
       </div>
     </div>
+
+
   </div>
-)
+  )
+}
 
 // Current Books Tab Component
 export const CurrentBooksTab = ({ dashboardData, onRenewBook, formatDate, getDaysRemaining, getStatusColor }) => (

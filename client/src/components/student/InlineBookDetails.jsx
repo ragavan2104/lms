@@ -26,7 +26,7 @@ const InlineBookDetails = ({ bookId, isOpen, onClose, onReserve, onRenew, positi
     try {
       const token = localStorage.getItem('token'); // Retrieve token from local storage
       // Ensure the full URL is used for the API call
-      const response = await axios.get(`http://localhost:5000/api/student/books/${bookId}`, {
+      const response = await axios.get(`/student/books/${bookId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setBook(response.data.book);

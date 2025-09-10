@@ -69,7 +69,7 @@ const PublicQuestionBank = () => {
 
   const fetchColleges = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/public/colleges');
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/api/public/colleges`);
       if (response.ok) {
         const data = await response.json();
         setColleges(data.colleges);

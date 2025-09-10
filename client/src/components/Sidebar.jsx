@@ -61,7 +61,7 @@ const Sidebar = ({ userRole }) => {
     
     const managementItems = [
       { path: `${baseUrl}/books`, label: 'Manage Books', icon: Book },
-      { path: `${baseUrl}/ebooks`, label: 'Manage E-books', icon: Monitor },
+      { path: `${baseUrl}/ebooks`, label: 'Manage E-Resources', icon: Monitor },
     ]
 
     if (userRole === 'admin') {
@@ -71,6 +71,7 @@ const Sidebar = ({ userRole }) => {
         { path: `${baseUrl}/colleges`, label: 'Manage Colleges', icon: Building },
         { path: `${baseUrl}/departments`, label: 'Manage Departments', icon: Settings },
         { path: `${baseUrl}/thesis`, label: 'Manage Thesis', icon: ThesisIcon },
+        { path: `${baseUrl}/journals`, label: 'Manage Journals', icon: BookOpen },
         { path: `${baseUrl}/question-banks`, label: 'Question Banks', icon: FileText },
         { path: `${baseUrl}/news`, label: 'News Clippings', icon: Newspaper },
         { path: `${baseUrl}/gate-entry`, label: 'Gate Entry', icon: Shield },
@@ -82,6 +83,7 @@ const Sidebar = ({ userRole }) => {
         { path: `${baseUrl}/colleges`, label: 'Manage Colleges', icon: Building },
         { path: `${baseUrl}/departments`, label: 'Manage Departments', icon: Settings },
         { path: `${baseUrl}/thesis`, label: 'Manage Thesis', icon: ThesisIcon },
+        { path: `${baseUrl}/journals`, label: 'Manage Journals', icon: BookOpen },
         { path: `${baseUrl}/question-banks`, label: 'Question Banks', icon: FileText },
         { path: `${baseUrl}/news-clippings`, label: 'News Clippings', icon: Newspaper },
         { path: `${baseUrl}/gate-entry`, label: 'Gate Entry', icon: Shield },

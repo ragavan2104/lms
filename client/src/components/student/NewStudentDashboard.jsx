@@ -2,28 +2,17 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   BookOpen, Calendar, Clock, DollarSign, User,
-  Search, Filter, Eye, RotateCcw, AlertCircle,
+  Filter, Eye, RotateCcw, AlertCircle,
   CheckCircle, XCircle, Plus, Minus, Star,
-  RefreshCw, Bell, Settings, ChevronDown,
-  Monitor, FileText, Newspaper, IndianRupee
+  RefreshCw, Bell, Settings, LogOut,
+  Monitor, FileText, Newspaper, IndianRupee, HelpCircle
 } from 'lucide-react'
 import axios from 'axios'
 import { OverviewTab, CurrentBooksTab } from './DashboardTabs'
 import ReservationModal from './ReservationModal'
+import { getBaseUrl } from '../../utils/apiConfig'
 
-// Add CSS for dropdown animation
-const dropdownStyles = `
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateX(-50%) translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-  }
-`
+
 
 const NewStudentDashboard = () => {
   const navigate = useNavigate()
@@ -35,24 +24,13 @@ const NewStudentDashboard = () => {
   const [showReservationModal, setShowReservationModal] = useState(false)
   const [reservationLoading, setReservationLoading] = useState(false)
   const [reservationDate, setReservationDate] = useState('')
-  const [showBrowseDropdown, setShowBrowseDropdown] = useState(false)
+
 
   useEffect(() => {
     fetchDashboardData()
   }, [])
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showBrowseDropdown && !event.target.closest('.browse-dropdown')) {
-        setShowBrowseDropdown(false)
-      }
-    }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showBrowseDropdown])
 
   const fetchDashboardData = async () => {
     try {
@@ -73,6 +51,12 @@ const NewStudentDashboard = () => {
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type })
     setTimeout(() => setNotification(null), 5000)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('userRole')
+    navigate('/login')
   }
 
   const handleReserveBook = (book) => {
@@ -173,7 +157,7 @@ const NewStudentDashboard = () => {
 
   const getProfilePictureUrl = (path) => {
     if (!path) return null
-    return `http://localhost:5000/uploads/${path}`
+    return `${getBaseUrl()}/uploads/${path}`
   }
 
   if (loading) {
@@ -189,8 +173,7 @@ const NewStudentDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Inject CSS for dropdown animation */}
-      <style>{dropdownStyles}</style>
+
 
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
@@ -201,9 +184,10 @@ const NewStudentDashboard = () => {
               <p className="text-gray-600">Welcome back, {dashboardData?.user?.name || 'Student'}</p>
             </div>
             <div className="flex items-center space-x-4">
-              <button 
+              <button
                 onClick={fetchDashboardData}
                 className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                title="Refresh Dashboard"
               >
                 <RefreshCw size={20} />
               </button>
@@ -217,6 +201,14 @@ const NewStudentDashboard = () => {
                 )}
                 <span>{dashboardData?.user?.user_id}</span>
               </div>
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-2 px-4 py-2 text-sm bg-red-500 text-white hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                title="Logout"
+              >
+                <LogOut size={16} />
+                <span>Logout</span>
+              </button>
             </div>
           </div>
         </div>
@@ -302,102 +294,105 @@ const NewStudentDashboard = () => {
               )
             })}
             
-            {/* Browse Dropdown */}
-            <div className="relative browse-dropdown">
+
+          </nav>
+        </div>
+      </div>
+
+      {/* Browse Library Resources */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">Browse Library Resources</h3>
+            <p className="text-sm text-gray-600 mt-1">Explore our comprehensive collection of books, digital resources, and academic materials</p>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Books */}
               <button
-                onClick={() => setShowBrowseDropdown(!showBrowseDropdown)}
-                className={`border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 bg-white hover:bg-gray-50 whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors duration-200 rounded-t-lg shadow-sm ${
-                  showBrowseDropdown ? 'text-blue-600 border-blue-500 bg-blue-50' : ''
-                }`}
+                onClick={() => navigate('/student/browse/books')}
+                className="group p-6 bg-white border-2 border-gray-200 rounded-lg transition-all duration-200 text-left hover:bg-white"
               >
-                <Search size={16} />
-                <span>Browse</span>
-                <ChevronDown size={14} className={`transition-transform duration-200 ${showBrowseDropdown ? 'rotate-180' : ''}`} />
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <BookOpen className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900">Books</h4>
+                </div>
+                <p className="text-sm text-gray-600">Browse our physical book collection and check availability</p>
               </button>
 
-              {/* Dropdown Menu */}
-              {showBrowseDropdown && (
-                <div
-                  className="fixed bg-white rounded-lg shadow-2xl border border-gray-200 z-[99999] overflow-hidden"
-                  style={{
-                    top: '120px', // Fixed position from top of viewport
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: '280px',
-                    maxHeight: '400px',
-                    animation: 'fadeIn 0.2s ease-out'
-                  }}
-                >
-                  <div className="py-3">
-                    <div className="px-4 py-2 border-b border-gray-100">
-                      <h3 className="text-sm font-semibold text-gray-900">Browse Library Resources</h3>
-                      <p className="text-xs text-gray-500 mt-1">Select a category to explore</p>
-                    </div>
-                    {[
-                      {
-                        id: 'books',
-                        name: 'Books',
-                        icon: BookOpen,
-                        path: '/student/browse/books',
-                        description: 'Browse physical books',
-                        bgClass: 'bg-blue-100 group-hover:bg-blue-200',
-                        iconClass: 'text-blue-600 group-hover:text-blue-700'
-                      },
-                      {
-                        id: 'ebooks',
-                        name: 'E-books',
-                        icon: Monitor,
-                        path: '/student/browse/ebooks',
-                        description: 'Digital book collection',
-                        bgClass: 'bg-indigo-100 group-hover:bg-indigo-200',
-                        iconClass: 'text-indigo-600 group-hover:text-indigo-700'
-                      },
-                      {
-                        id: 'thesis',
-                        name: 'Thesis',
-                        icon: FileText,
-                        path: '/student/browse/thesis',
-                        description: 'Academic thesis papers',
-                        bgClass: 'bg-purple-100 group-hover:bg-purple-200',
-                        iconClass: 'text-purple-600 group-hover:text-purple-700'
-                      },
-                      {
-                        id: 'news-clippings',
-                        name: 'News Clippings',
-                        icon: Newspaper,
-                        path: '/student/browse/news-clippings',
-                        description: 'News articles & clippings',
-                        bgClass: 'bg-green-100 group-hover:bg-green-200',
-                        iconClass: 'text-green-600 group-hover:text-green-700'
-                      }
-                    ].map((item) => {
-                      const Icon = item.icon
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setShowBrowseDropdown(false)
-                            navigate(item.path)
-                          }}
-                          className="w-full text-left px-4 py-3 text-sm flex items-center space-x-3 transition-all duration-200 text-gray-700 hover:bg-gray-50 group border-b border-gray-50 last:border-b-0"
-                        >
-                          <div className={`p-2.5 rounded-lg transition-colors duration-200 ${item.bgClass}`}>
-                            <Icon size={18} className={`transition-colors duration-200 ${item.iconClass}`} />
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-medium text-gray-900 group-hover:text-gray-900">{item.name}</div>
-                            <div className="text-xs text-gray-500 group-hover:text-gray-600 mt-0.5">{item.description}</div>
-                          </div>
-                          <ChevronDown size={14} className="text-gray-400 group-hover:text-gray-600 transform rotate-[-90deg]" />
-                        </button>
-                      )
-                    })}
+              {/* E-Resources */}
+              <button
+                onClick={() => navigate('/student/browse/e-resources')}
+                className="group p-6 bg-white border-2 border-gray-200 rounded-lg transition-all duration-200 text-left hover:bg-white"
+              >
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <Monitor className="h-6 w-6 text-green-600" />
                   </div>
+                  <h4 className="text-lg font-semibold text-gray-900">E-Resources</h4>
                 </div>
-              )}
+                <p className="text-sm text-gray-600">Access digital books, e-journals, and online databases</p>
+              </button>
+
+              {/* Thesis */}
+              <button
+                onClick={() => navigate('/student/browse/thesis')}
+                className="group p-6 bg-white border-2 border-gray-200 rounded-lg transition-all duration-200 text-left hover:bg-white"
+              >
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <FileText className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900">Thesis</h4>
+                </div>
+                <p className="text-sm text-gray-600">Explore academic thesis papers and research documents</p>
+              </button>
+
+              {/* News Clippings */}
+              <button
+                onClick={() => navigate('/student/browse/news-clippings')}
+                className="group p-6 bg-white border-2 border-gray-200 rounded-lg transition-all duration-200 text-left hover:bg-white"
+              >
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <Newspaper className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900">News Clippings</h4>
+                </div>
+                <p className="text-sm text-gray-600">Browse news articles and current affairs clippings</p>
+              </button>
+
+              {/* Journals */}
+              <button
+                onClick={() => navigate('/student/browse/journals')}
+                className="group p-6 bg-white border-2 border-gray-200 rounded-lg transition-all duration-200 text-left hover:bg-white"
+              >
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="p-2 bg-indigo-100 rounded-lg">
+                    <BookOpen className="h-6 w-6 text-indigo-600" />
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900">Journals</h4>
+                </div>
+                <p className="text-sm text-gray-600">Access academic and research journals</p>
+              </button>
+
+              {/* Question Banks */}
+              <button
+                onClick={() => navigate('/student/browse/question-banks')}
+                className="group p-6 bg-white border-2 border-gray-200 rounded-lg transition-all duration-200 text-left hover:bg-white"
+              >
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="p-2 bg-red-100 rounded-lg">
+                    <HelpCircle className="h-6 w-6 text-red-600" />
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900">Question Banks (QB)</h4>
+                </div>
+                <p className="text-sm text-gray-600">Find question papers and practice materials</p>
+              </button>
             </div>
-          </nav>
+          </div>
         </div>
       </div>
 
@@ -795,7 +790,7 @@ const ProfileTab = ({ dashboardData, showNotification, updateDashboardData }) =>
 
   const getProfilePictureUrl = (path) => {
     if (!path) return null
-    return `http://localhost:5000/uploads/${path}`
+    return `${getBaseUrl()}/uploads/${path}`
   }
 
   if (loading) {

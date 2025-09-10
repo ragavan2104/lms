@@ -174,10 +174,10 @@ const OPAC = () => {
             <nav className="desktop-nav">
               <a href="#catalog" className="nav-link">Catalog</a>
               <a href="/question-banks" className="nav-link">Question Banks</a>
-              <a href="/ebooks" className="nav-link">E-books</a>
+              <a href="/e-resources" className="nav-link">E-Resources</a>
               <a href="/news-clippings" className="nav-link">News Clippings</a>
               <a href="/thesis" className="nav-link">Thesis</a>
-              <a href="#about" className="nav-link">About</a>
+              <a href="/journals" className="nav-link">Journals</a>
             </nav>
 
             {/* Login Button */}
@@ -202,10 +202,10 @@ const OPAC = () => {
             <nav className="mobile-nav">
               <a href="#catalog" className="mobile-nav-link">Catalog</a>
               <a href="/question-banks" className="mobile-nav-link">Question Banks</a>
-              <a href="/ebooks" className="mobile-nav-link">E-books</a>
+              <a href="/e-resources" className="mobile-nav-link">E-Resources</a>
               <a href="/news-clippings" className="mobile-nav-link">News Clippings</a>
               <a href="/thesis" className="mobile-nav-link">Thesis</a>
-              <a href="#about" className="mobile-nav-link">About</a>
+              <a href="/journals" className="mobile-nav-link">Journals</a>
             </nav>
           )}
         </div>

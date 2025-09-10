@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Search,
   Download,
@@ -7,13 +8,15 @@ import {
   Newspaper,
   Tag,
   Filter,
-  Eye
+  Eye,
+  ArrowLeft
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { getApiBaseUrl } from '../../utils/apiConfig'
 import api from '../../services/api'
 
 const StudentNewsClippings = () => {
+  const navigate = useNavigate()
   const [clippings, setClippings] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -23,6 +26,10 @@ const StudentNewsClippings = () => {
   const [totalPages, setTotalPages] = useState(1)
   const [selectedClipping, setSelectedClipping] = useState(null)
   const [showDetails, setShowDetails] = useState(false)
+
+  const handleBack = () => {
+    navigate('/student/dashboard')
+  }
 
   useEffect(() => {
     fetchClippings()
@@ -101,19 +108,36 @@ const StudentNewsClippings = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">News Clippings</h1>
-          <p className="text-gray-600">Browse and download news articles and clippings</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center py-6">
+            <button
+              onClick={handleBack}
+              className="flex items-center space-x-2 text-white hover:text-gray-900 transition-colors mr-6"
+            >
+              <ArrowLeft size={20} />
+              <span>Back to Dashboard</span>
+            </button>
+            <div className="flex items-center space-x-3">
+              <Newspaper className="text-orange-600" size={24} />
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">News Clippings</h1>
+                <p className="text-sm text-gray-600">Browse and download news articles and clippings</p>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* Search and Filters */}
         <div className="bg-white p-6 rounded-lg shadow-sm mb-8 border">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
-              <Search className="w-5 h-5 absolute left-3 top-3 text-gray-400" />
+              <Search className="w-5 h-5 absolute right-3 top-3 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search by title, newspaper, subject..."
