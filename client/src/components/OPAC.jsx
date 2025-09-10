@@ -379,6 +379,7 @@ const OPAC = () => {
                           <p><strong>Publisher:</strong> {book.publisher}</p>
                           <p><strong>Location:</strong> {book.location}</p>
                           <p><strong>Access No:</strong> {book.access_no}</p>
+                          {book.call_no && <p><strong>Call No:</strong> {book.call_no}</p>}
                         </div>
                       )}
                     </div>

@@ -217,6 +217,7 @@ class Book(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     access_no = db.Column(db.String(50), nullable=False, unique=True)
+    call_no = db.Column(db.String(100), nullable=True)  # Call number for library cataloging
     title = db.Column(db.String(200), nullable=False)
     # Multiple authors support
     author_1 = db.Column(db.String(200), nullable=False)  # Primary author (required)
@@ -576,19 +577,50 @@ class Holiday(db.Model):
 
     @staticmethod
     def is_holiday(check_date):
-        """Check if a given date is a holiday"""
+        """Check if a given date is a holiday - returns Holiday object if found, None otherwise"""
         # Check for exact date match
         holiday = Holiday.query.filter_by(date=check_date).first()
         if holiday:
-            return True
-        
+            return holiday
+
         # Check for recurring holidays (same month and day)
         recurring_holidays = Holiday.query.filter_by(is_recurring=True).all()
         for holiday in recurring_holidays:
             if holiday.date.month == check_date.month and holiday.date.day == check_date.day:
-                return True
-        
-        return False
+                return holiday
+
+        return None
+
+    @staticmethod
+    def get_upcoming_holidays(days_ahead=30):
+        """Get upcoming holidays within the specified number of days"""
+        from datetime import date, timedelta
+
+        today = date.today()
+        end_date = today + timedelta(days=days_ahead)
+
+        # Get exact date matches
+        exact_holidays = Holiday.query.filter(
+            Holiday.date >= today,
+            Holiday.date <= end_date
+        ).order_by(Holiday.date).all()
+
+        holidays = list(exact_holidays)
+
+        # Check for recurring holidays
+        recurring_holidays = Holiday.query.filter_by(is_recurring=True).all()
+        current_date = today
+        while current_date <= end_date:
+            for holiday in recurring_holidays:
+                if (holiday.date.month == current_date.month and
+                    holiday.date.day == current_date.day and
+                    holiday not in holidays):  # Avoid duplicates
+                    holidays.append(holiday)
+            current_date += timedelta(days=1)
+
+        # Sort by date
+        holidays.sort(key=lambda h: (h.date.month, h.date.day))
+        return holidays
 
     @staticmethod
     def get_holidays_between(start_date, end_date):
@@ -917,7 +949,10 @@ def get_books():
             query = query.filter(
                 Book.title.contains(search) |
                 Book.author.contains(search) |
-                Book.access_no.contains(search)
+                Book.access_no.contains(search) |
+                Book.call_no.contains(search) |
+                Book.author_1.contains(search) |
+                Book.isbn.contains(search)
             )
 
         books = query.paginate(page=page, per_page=per_page, error_out=False)
@@ -926,6 +961,7 @@ def get_books():
             'books': [{
                 'id': book.id,
                 'access_no': book.access_no,
+                'call_no': getattr(book, 'call_no', None),  # Call number field
                 'title': book.title,
                 # Multiple authors
                 'author_1': getattr(book, 'author_1', None) or book.author,
@@ -973,6 +1009,17 @@ def create_book():
         for field in required_fields:
             if not data.get(field):
                 return jsonify({'error': f'{field.replace("_", " ").title()} is required'}), 400
+
+        # Validate call_no field if provided
+        call_no = data.get('call_no', '').strip() if data.get('call_no') else None
+        if call_no:
+            # Basic validation for call number format
+            if len(call_no) > 100:
+                return jsonify({'error': 'Call number cannot exceed 100 characters'}), 400
+            # Allow alphanumeric characters, dots, spaces, and common library classification symbols
+            import re
+            if not re.match(r'^[A-Za-z0-9\.\s\-\/]+$', call_no):
+                return jsonify({'error': 'Call number contains invalid characters. Use only letters, numbers, dots, spaces, hyphens, and slashes.'}), 400
 
         # Validate optional numeric fields if provided
         pages = None
@@ -1051,6 +1098,7 @@ def create_book():
 
             book = Book(
                 access_no=access_no,
+                call_no=call_no,  # Call number field
                 title=data.get('title'),
                 # Multiple authors
                 author_1=data.get('author_1'),
@@ -1132,7 +1180,7 @@ def bulk_create_books():
         # Validate required columns (number_of_copies removed - will default to 1)
         # Made department, location, pages, edition optional for bulk upload
         required_columns = ['access_no', 'title', 'author_1', 'publisher', 'price']
-        optional_columns = ['author_2', 'author_3', 'author_4', 'isbn', 'department', 'location', 'pages', 'edition']
+        optional_columns = ['call_no', 'author_2', 'author_3', 'author_4', 'isbn', 'department', 'location', 'pages', 'edition']
 
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
@@ -1162,6 +1210,19 @@ def bulk_create_books():
                     errors.append(f"Row {index + 1}: Author 1 is required")
                     continue
 
+                # Validate call_no field if provided
+                call_no_value = None
+                if 'call_no' in df.columns and not pd.isna(row.get('call_no')):
+                    call_no_value = str(row['call_no']).strip()
+                    if len(call_no_value) > 100:
+                        errors.append(f"Row {index + 1}: Call number cannot exceed 100 characters")
+                        continue
+                    # Basic validation for call number format
+                    import re
+                    if not re.match(r'^[A-Za-z0-9\.\s\-\/]+$', call_no_value):
+                        errors.append(f"Row {index + 1}: Call number contains invalid characters")
+                        continue
+
                 # Validate optional numeric fields if provided
                 pages_value = None
                 if 'pages' in df.columns and not pd.isna(row.get('pages')):
@@ -1180,6 +1241,7 @@ def bulk_create_books():
 
                 book = Book(
                     access_no=access_no,
+                    call_no=call_no_value,  # Call number field
                     title=row['title'],
                     # Multiple authors
                     author_1=row['author_1'],
@@ -2297,13 +2359,14 @@ def generate_automatic_fines():
                 if total_days <= 0:
                     continue
                 
-                # Calculate working days (excluding holidays)
+                # Calculate working days (excluding holidays and Sundays)
                 working_days_overdue = 0
                 current_date = due_date + timedelta(days=1)  # Start from day after due date
-                
+
                 while current_date <= today:
-                    # Check if current date is not a holiday
-                    if not Holiday.is_holiday(current_date):
+                    # Check if current date is not a holiday and not a Sunday
+                    # weekday() returns 6 for Sunday
+                    if not Holiday.is_holiday(current_date) and current_date.weekday() != 6:
                         working_days_overdue += 1
                     current_date += timedelta(days=1)
                 
@@ -2326,14 +2389,14 @@ def generate_automatic_fines():
                         user_id=circulation.user_id,
                         circulation_id=circulation.id,
                         amount=fine_amount,
-                        reason=f'Overdue fine for "{book.title}" ({book.access_no}) - {working_days_overdue} working days late (excluding holidays)',
+                        reason=f'Overdue fine for "{book.title}" ({book.access_no}) - {working_days_overdue} working days late (excluding holidays and Sundays)',
                         status='pending',
                         created_by=1  # System generated
                     )
                     
                     db.session.add(fine)
                     created_fines += 1
-                    print(f"💰 Auto-generated fine: ₹{fine_amount:.2f} for {user.name} - {book.title} ({working_days_overdue} working days, {total_days} total days)")
+                    print(f"💰 Auto-generated fine: ₹{fine_amount:.2f} for {user.name} - {book.title} ({working_days_overdue} working days, {total_days} total days, excluding holidays and Sundays)")
                 
                 # Update circulation status to overdue
                 if circulation.status == 'issued':
@@ -4488,6 +4551,42 @@ def delete_holiday(holiday_id):
         db.session.commit()
 
         return jsonify({'message': 'Holiday deleted successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Get upcoming holidays
+@app.route('/api/admin/holidays/upcoming', methods=['GET'])
+@jwt_required()
+def get_upcoming_holidays():
+    try:
+        current_user_id = int(get_jwt_identity())
+        current_user = User.query.get(current_user_id)
+
+        if not current_user or current_user.role != 'admin':
+            return jsonify({'error': 'Admin access required'}), 403
+
+        days_ahead = request.args.get('days', 30, type=int)
+
+        upcoming_holidays = Holiday.get_upcoming_holidays(days_ahead)
+
+        holidays_data = []
+        for holiday in upcoming_holidays:
+            holidays_data.append({
+                'id': holiday.id,
+                'name': holiday.name,
+                'date': holiday.date.isoformat(),
+                'description': holiday.description,
+                'is_recurring': holiday.is_recurring,
+                'created_at': holiday.created_at.isoformat() if holiday.created_at else None,
+                'created_by': holiday.created_by_user.name if holiday.created_by_user else 'Unknown'
+            })
+
+        return jsonify({
+            'holidays': holidays_data,
+            'days_ahead': days_ahead,
+            'count': len(holidays_data)
+        }), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500

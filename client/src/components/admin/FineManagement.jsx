@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { DollarSign, Plus, Search, User, Calendar, CheckCircle, AlertCircle, FileText, Edit, Trash2 } from 'lucide-react'
+import { Plus, Search, User, Calendar, CheckCircle, AlertCircle, FileText, Edit, Trash2 } from 'lucide-react'
 import axios from 'axios'
 
 const FineManagement = () => {
@@ -370,19 +370,16 @@ const FineManagement = () => {
                 </div>
                 <div className="form-group">
                   <label>Fine Amount *</label>
-                  <div className="input-with-icon">
-                    <DollarSign size={16} />
-                    <input
-                      type="number"
-                      name="amount"
-                      value={formData.amount}
-                      onChange={handleInputChange}
-                      placeholder="0.00"
-                      step="0.01"
-                      min="0"
-                      className={errors.amount ? 'error' : ''}
-                    />
-                  </div>
+                  <input
+                    type="number"
+                    name="amount"
+                    value={formData.amount}
+                    onChange={handleInputChange}
+                    placeholder="Enter amount (numbers only)"
+                    step="0.01"
+                    min="0"
+                    className={errors.amount ? 'error' : ''}
+                  />
                   {errors.amount && <span className="error-text">{errors.amount}</span>}
                 </div>
                 <div className="form-group full-width">
@@ -450,20 +447,17 @@ const FineManagement = () => {
                 </div>
                 <div className="form-group">
                   <label>Fine Amount *</label>
-                  <div className="input-with-icon">
-                    <DollarSign size={16} />
-                    <input
-                      type="number"
-                      name="amount"
-                      value={formData.amount}
-                      onChange={handleInputChange}
-                      placeholder="0.00"
-                      step="0.01"
-                      min="0"
-                      max="10000"
-                      className={errors.amount ? 'error' : ''}
-                    />
-                  </div>
+                  <input
+                    type="number"
+                    name="amount"
+                    value={formData.amount}
+                    onChange={handleInputChange}
+                    placeholder="Enter amount (numbers only)"
+                    step="0.01"
+                    min="0"
+                    max="10000"
+                    className={errors.amount ? 'error' : ''}
+                  />
                   {errors.amount && <span className="error-text">{errors.amount}</span>}
                 </div>
                 <div className="form-group full-width">
@@ -519,7 +513,6 @@ const FineManagement = () => {
                 <div className="form-group">
                   <label>User ID (Roll Number)</label>
                   <div className="input-with-icon">
-                    <User size={16} />
                     <input
                       type="text"
                       name="userId"
@@ -532,20 +525,17 @@ const FineManagement = () => {
                 </div>
                 <div className="form-group">
                   <label>Fine Amount *</label>
-                  <div className="input-with-icon">
-                    <DollarSign size={16} />
-                    <input
-                      type="number"
-                      name="amount"
-                      value={formData.amount}
-                      onChange={handleInputChange}
-                      placeholder="0.00"
-                      step="0.01"
-                      min="0"
-                      max="10000"
-                      className={errors.amount ? 'error' : ''}
-                    />
-                  </div>
+                  <input
+                    type="number"
+                    name="amount"
+                    value={formData.amount}
+                    onChange={handleInputChange}
+                    placeholder="Enter amount (numbers only)"
+                    step="0.01"
+                    min="0"
+                    max="10000"
+                    className={errors.amount ? 'error' : ''}
+                  />
                   {errors.amount && <span className="error-text">{errors.amount}</span>}
                 </div>
                 <div className="form-group full-width">

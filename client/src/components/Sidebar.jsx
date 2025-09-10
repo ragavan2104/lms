@@ -95,7 +95,7 @@ const Sidebar = ({ userRole }) => {
       { path: `${baseUrl}/circulation-history`, label: 'Circulation History', icon: Settings },
       { path: `${baseUrl}/reservations`, label: 'Reservation Management', icon: Clock },
       { path: `${baseUrl}/fine-management`, label: 'Fine Management', icon: DollarSign },
-      { path: `${baseUrl}/holiday-management`, label: 'Holiday Management', icon: Calendar },
+      { path: `${baseUrl}/holidays`, label: 'Holiday Management', icon: Calendar },
       { path: `${baseUrl}/payment-management`, label: 'Payment Management', icon: CreditCard }
     ]
 

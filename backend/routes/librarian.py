@@ -1,12 +1,29 @@
 from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import User, Book, Ebook, Circulation, NewsClipping, Settings, Reservation, Department, Category, College, Thesis, db
+from models import User, Book, Ebook, Circulation, NewsClipping, Settings, Reservation, Department, Category, College, Thesis, Holiday, db
 from datetime import datetime, timedelta
 from functools import wraps
 import os
 import uuid
 
 librarian_bp = Blueprint('librarian', __name__)
+
+def calculate_due_date_skipping_holidays_and_sundays(start_date, days):
+    """Calculate due date skipping holidays and Sundays"""
+    from datetime import date, timedelta
+
+    current_date = start_date
+    days_added = 0
+
+    while days_added < days:
+        current_date += timedelta(days=1)
+
+        # Check if current date is not a holiday and not a Sunday
+        # weekday() returns 6 for Sunday
+        if not Holiday.is_holiday(current_date) and current_date.weekday() != 6:
+            days_added += 1
+
+    return current_date
 
 def librarian_required(f):
     @wraps(f)
@@ -31,9 +48,12 @@ def get_books():
         query = Book.query
         if search:
             query = query.filter(
-                Book.title.contains(search) | 
+                Book.title.contains(search) |
                 Book.author.contains(search) |
-                Book.isbn.contains(search)
+                Book.isbn.contains(search) |
+                Book.call_no.contains(search) |
+                Book.access_no.contains(search) |
+                Book.author_1.contains(search)
             )
         
         books = query.paginate(page=page, per_page=per_page, error_out=False)
@@ -41,16 +61,26 @@ def get_books():
         return jsonify({
             'books': [{
                 'id': book.id,
+                'access_no': getattr(book, 'access_no', None),
+                'call_no': getattr(book, 'call_no', None),
                 'isbn': book.isbn,
                 'title': book.title,
-                'author': book.author,
+                'author': book.author or getattr(book, 'author_1', None),
+                'author_1': getattr(book, 'author_1', None),
+                'author_2': getattr(book, 'author_2', None),
+                'author_3': getattr(book, 'author_3', None),
+                'author_4': getattr(book, 'author_4', None),
                 'publisher': book.publisher,
-                'publication_year': book.publication_year,
+                'publication_year': getattr(book, 'publication_year', None),
                 'category': book.category,
-                'total_copies': book.total_copies,
-                'available_copies': book.available_copies,
+                'department': getattr(book, 'department', None),
+                'total_copies': getattr(book, 'number_of_copies', 1),
+                'available_copies': getattr(book, 'available_copies', 1),
                 'location': book.location,
-                'description': book.description,
+                'pages': getattr(book, 'pages', None),
+                'price': float(getattr(book, 'price', 0)) if getattr(book, 'price', None) else None,
+                'edition': getattr(book, 'edition', None),
+                'description': getattr(book, 'description', None),
                 'created_at': book.created_at.isoformat()
             } for book in books.items],
             'pagination': {
@@ -68,29 +98,48 @@ def get_books():
 def create_book():
     try:
         data = request.get_json()
-        
+
+        # Validate required fields
+        if not data.get('title') or not data.get('author_1'):
+            return jsonify({'error': 'Title and primary author are required'}), 400
+
+        # Validate call_no if provided
+        call_no = data.get('call_no', '').strip() if data.get('call_no') else None
+        if call_no and len(call_no) > 100:
+            return jsonify({'error': 'Call number cannot exceed 100 characters'}), 400
+
         book = Book(
+            access_no=data.get('access_no'),
+            call_no=call_no,
             isbn=data.get('isbn'),
             title=data.get('title'),
-            author=data.get('author'),
+            author_1=data.get('author_1'),
+            author_2=data.get('author_2'),
+            author_3=data.get('author_3'),
+            author_4=data.get('author_4'),
+            author=data.get('author_1'),  # Legacy field
             publisher=data.get('publisher'),
-            publication_year=data.get('publication_year'),
+            department=data.get('department'),
             category=data.get('category'),
-            total_copies=data.get('total_copies', 1),
+            number_of_copies=data.get('total_copies', 1),
             available_copies=data.get('total_copies', 1),
             location=data.get('location'),
+            pages=data.get('pages', 0),
+            price=data.get('price', 0),
+            edition=data.get('edition', 'Not Specified'),
             description=data.get('description')
         )
-        
+
         db.session.add(book)
         db.session.commit()
-        
+
         return jsonify({
             'message': 'Book created successfully',
             'book': {
                 'id': book.id,
                 'title': book.title,
-                'author': book.author
+                'author': book.author_1,
+                'call_no': book.call_no
             }
         }), 201
     except Exception as e:
@@ -197,6 +246,22 @@ def issue_book():
                 'expired_date': user.validity_date.isoformat() if user.validity_date else None
             }), 400
 
+        # Check if today is a holiday
+        from datetime import date
+        today = date.today()
+        holiday = Holiday.is_holiday(today)
+
+        # Check if book issues are allowed on holidays (configurable setting)
+        allow_issues_on_holidays = Settings.get_setting('allow_book_issues_on_holidays', False)
+
+        if holiday and not allow_issues_on_holidays:
+            return jsonify({
+                'error': f'Book issues are not allowed on holidays',
+                'holiday_name': holiday.name,
+                'holiday_date': holiday.date.isoformat(),
+                'message': f'Today is {holiday.name}. Library book issues are suspended on holidays.'
+            }), 400
+
         # Check borrowing limits
         current_borrowed_count = Circulation.query.filter_by(
             user_id=user.id,
@@ -267,11 +332,20 @@ def issue_book():
                 # The reservation will be handled when the book is returned
                 pass
 
+        # Calculate due date (skip holidays if setting is enabled)
+        skip_holidays_for_due_date = Settings.get_setting('skip_holidays_for_due_date', True)
+
+        if skip_holidays_for_due_date:
+            due_date = calculate_due_date_skipping_holidays_and_sundays(today, days)
+            due_datetime = datetime.combine(due_date, datetime.min.time())
+        else:
+            due_datetime = datetime.utcnow() + timedelta(days=days)
+
         # Create circulation record
         circulation = Circulation(
             user_id=user_id,
             book_id=book_id,
-            due_date=datetime.utcnow() + timedelta(days=days)
+            due_date=due_datetime
         )
         
         # Update book availability

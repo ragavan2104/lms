@@ -178,14 +178,30 @@ class Circulation(db.Model):
     notes = db.Column(db.Text)
     
     def calculate_fine(self, fine_per_day=1.0):
-        """Calculate fine for overdue books"""
+        """Calculate fine for overdue books excluding holidays and Sundays"""
+        from datetime import timedelta
+
         if self.return_date and self.return_date > self.due_date:
-            days_overdue = (self.return_date - self.due_date).days
-            return days_overdue * fine_per_day
+            end_date = self.return_date.date()
         elif not self.return_date and datetime.utcnow() > self.due_date:
-            days_overdue = (datetime.utcnow() - self.due_date).days
-            return days_overdue * fine_per_day
-        return 0.0
+            end_date = datetime.utcnow().date()
+        else:
+            return 0.0
+
+        due_date = self.due_date.date()
+
+        # Calculate working days (excluding holidays and Sundays)
+        working_days_overdue = 0
+        current_date = due_date + timedelta(days=1)  # Start from day after due date
+
+        while current_date <= end_date:
+            # Check if current date is not a holiday and not a Sunday
+            # weekday() returns 6 for Sunday
+            if not Holiday.is_holiday(current_date) and current_date.weekday() != 6:
+                working_days_overdue += 1
+            current_date += timedelta(days=1)
+
+        return working_days_overdue * fine_per_day
 
 class Category(db.Model):
     __tablename__ = 'categories'
@@ -239,3 +255,131 @@ class Thesis(db.Model):
     college = db.relationship('College', backref='theses')
     department = db.relationship('Department', backref='theses')
     creator = db.relationship('User', backref='created_theses')
+
+class Holiday(db.Model):
+    __tablename__ = 'holidays'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    description = db.Column(db.Text)
+    is_recurring = db.Column(db.Boolean, default=False)  # Whether holiday repeats annually
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    # Relationships
+    created_by_user = db.relationship('User', backref='holidays_created')
+
+    def __repr__(self):
+        return f'<Holiday {self.name} on {self.date}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'date': self.date.isoformat() if self.date else None,
+            'description': self.description,
+            'is_recurring': self.is_recurring,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+    @staticmethod
+    def is_holiday(check_date):
+        """Check if a given date is a holiday"""
+        from datetime import date
+
+        # Check for exact date match
+        exact_match = Holiday.query.filter_by(date=check_date).first()
+        if exact_match:
+            return exact_match
+
+        # Check for recurring holidays (same month and day)
+        recurring_holidays = Holiday.query.filter_by(is_recurring=True).all()
+        for holiday in recurring_holidays:
+            if holiday.date.month == check_date.month and holiday.date.day == check_date.day:
+                return holiday
+
+        return None
+
+    @staticmethod
+    def get_upcoming_holidays(days_ahead=30):
+        """Get holidays in the next N days"""
+        from datetime import date, timedelta
+
+        today = date.today()
+        end_date = today + timedelta(days=days_ahead)
+
+        # Get holidays in date range
+        upcoming = Holiday.query.filter(
+            Holiday.date >= today,
+            Holiday.date <= end_date
+        ).order_by(Holiday.date).all()
+
+        # Add recurring holidays for current year
+        recurring_holidays = Holiday.query.filter_by(is_recurring=True).all()
+        for holiday in recurring_holidays:
+            # Create date for current year
+            try:
+                current_year_date = date(today.year, holiday.date.month, holiday.date.day)
+                if today <= current_year_date <= end_date:
+                    # Check if not already in list
+                    if not any(h.date == current_year_date for h in upcoming):
+                        # Create a temporary holiday object for display
+                        temp_holiday = Holiday()
+                        temp_holiday.id = holiday.id
+                        temp_holiday.name = holiday.name
+                        temp_holiday.date = current_year_date
+                        temp_holiday.description = holiday.description
+                        temp_holiday.is_recurring = holiday.is_recurring
+                        temp_holiday.created_at = holiday.created_at
+                        upcoming.append(temp_holiday)
+            except ValueError:
+                # Handle leap year issues (Feb 29)
+                continue
+
+        # Sort by date
+        upcoming.sort(key=lambda x: x.date)
+        return upcoming
+
+class Settings(db.Model):
+    __tablename__ = 'settings'
+
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(100), unique=True, nullable=False)
+    value = db.Column(db.Text, nullable=False)
+    description = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    @staticmethod
+    def get_setting(key, default_value=None):
+        """Get a setting value by key"""
+        setting = Settings.query.filter_by(key=key).first()
+        if setting:
+            # Try to convert to appropriate type
+            value = setting.value
+            if value.lower() in ['true', 'false']:
+                return value.lower() == 'true'
+            try:
+                return int(value)
+            except ValueError:
+                try:
+                    return float(value)
+                except ValueError:
+                    return value
+        return default_value
+
+    @staticmethod
+    def set_setting(key, value, description=None):
+        """Set a setting value"""
+        setting = Settings.query.filter_by(key=key).first()
+        if setting:
+            setting.value = str(value)
+            if description:
+                setting.description = description
+            setting.updated_at = datetime.utcnow()
+        else:
+            setting = Settings(key=key, value=str(value), description=description)
+            db.session.add(setting)
+        db.session.commit()
+        return setting

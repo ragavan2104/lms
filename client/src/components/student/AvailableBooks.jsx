@@ -250,6 +250,12 @@ const AvailableBooks = () => {
                           <Hash size={14} />
                           <span>Access No: {book.access_no}</span>
                         </div>
+                        {book.call_no && (
+                          <div className="detail-item">
+                            <Hash size={14} />
+                            <span>Call No: {book.call_no}</span>
+                          </div>
+                        )}
                         {book.isbn && (
                           <div className="detail-item">
                             <Hash size={14} />

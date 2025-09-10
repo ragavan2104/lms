@@ -376,7 +376,7 @@ const IssueBook = () => {
                     <Book size={16} />
                     <input
                       type="text"
-                      placeholder="Search by title, author, access number, or ISBN"
+                      placeholder="Search by title, author, access number, call number, or ISBN"
                       value={bookSearch}
                       onChange={handleBookInputChange}
                       onFocus={handleBookInputFocus}
@@ -440,7 +440,9 @@ const IssueBook = () => {
                               {book.title} by {book.author}
                             </div>
                             <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                              Access No: {book.access_no} • {book.available_copies} copies available
+                              Access No: {book.access_no}
+                              {book.call_no && ` • Call No: ${book.call_no}`}
+                              {` • ${book.available_copies} copies available`}
                               {book.isbn && ` • ISBN: ${book.isbn}`}
                             </div>
                             {book.available_copies === 0 && (
@@ -481,7 +483,9 @@ const IssueBook = () => {
                           Selected: {selectedBook.title}
                         </div>
                         <div style={{ fontSize: '0.85rem', color: '#388e3c' }}>
-                          by {selectedBook.author} • Access No: {selectedBook.access_no} • {selectedBook.available_copies} available
+                          by {selectedBook.author} • Access No: {selectedBook.access_no}
+                          {selectedBook.call_no && ` • Call No: ${selectedBook.call_no}`}
+                          {` • ${selectedBook.available_copies} available`}
                           {selectedBook.isbn && ` • ISBN: ${selectedBook.isbn}`}
                         </div>
                       </div>
@@ -730,7 +734,10 @@ const IssueBook = () => {
                         <div className="book-details">
                           <strong>{item.title}</strong>
                           <span>by {item.author}</span>
-                          <small>Access No: {item.access_no}</small>
+                          <small>
+                            Access No: {item.access_no}
+                            {item.call_no && ` • Call No: ${item.call_no}`}
+                          </small>
                         </div>
                         <div className="book-dates">
                           <div className="date-info">

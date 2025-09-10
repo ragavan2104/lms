@@ -1,34 +1,41 @@
-import React, { useState, useEffect, Fragment } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   BookOpen, Calendar, Clock, DollarSign, User,
   Search, Filter, Eye, RotateCcw, AlertCircle,
   CheckCircle, XCircle, Plus, Minus, Star,
-  Download, RefreshCw, Bell, Settings, Hash,
-  Building, MapPin,IndianRupee, ChevronDown,
-  FileText, Newspaper, Monitor
+  RefreshCw, Bell, Settings, ChevronDown,
+  Monitor, FileText, Newspaper, IndianRupee
 } from 'lucide-react'
 import axios from 'axios'
 import { OverviewTab, CurrentBooksTab } from './DashboardTabs'
 import ReservationModal from './ReservationModal'
-import InlineBookDetails from './InlineBookDetails'
+
+// Add CSS for dropdown animation
+const dropdownStyles = `
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  }
+`
 
 const NewStudentDashboard = () => {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('overview')
   const [dashboardData, setDashboardData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [notification, setNotification] = useState(null)
-  const [searchTerm, setSearchTerm] = useState('')
   const [selectedBook, setSelectedBook] = useState(null)
   const [showReservationModal, setShowReservationModal] = useState(false)
   const [reservationLoading, setReservationLoading] = useState(false)
   const [reservationDate, setReservationDate] = useState('')
-  const [availableBooks, setAvailableBooks] = useState([])
-  const [categories, setCategories] = useState([])
-  const [selectedCategory, setSelectedCategory] = useState('all')
-  const [selectedBookId, setSelectedBookId] = useState(null)
-  const [isBookDetailsOpen, setIsBookDetailsOpen] = useState(false)
   const [showBrowseDropdown, setShowBrowseDropdown] = useState(false)
-  const [selectedBrowseType, setSelectedBrowseType] = useState('books')
 
   useEffect(() => {
     fetchDashboardData()
@@ -86,9 +93,6 @@ const NewStudentDashboard = () => {
       setShowReservationModal(false)
       setSelectedBook(null)
       fetchDashboardData()
-      if (activeTab === 'browse') {
-        fetchAvailableBooks()
-      }
     } catch (error) {
       const message = error.response?.data?.error || 'Failed to reserve book'
       showNotification(message, 'error')
@@ -138,42 +142,7 @@ const NewStudentDashboard = () => {
     }
   }
 
-  const fetchAvailableBooks = async () => {
-    try {
-      const token = localStorage.getItem('token')
-      const params = new URLSearchParams({
-        page: 1,
-        per_page: 20,
-        search: searchTerm,
-        category: selectedCategory,
-        availability: 'all',
-        type: selectedBrowseType
-      })
 
-      const endpoint = selectedBrowseType === 'books' ? 
-        `http://localhost:5000/api/student/books?${params.toString()}` :
-        `http://localhost:5000/api/student/${selectedBrowseType}?${params.toString()}`
-
-      const response = await axios.get(endpoint, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      setAvailableBooks(response.data.books || response.data.items || [])
-    } catch (error) {
-      console.error(`Failed to fetch available ${selectedBrowseType}:`, error)
-    }
-  }
-
-  const fetchCategories = async () => {
-    try {
-      const token = localStorage.getItem('token')
-      const response = await axios.get('http://localhost:5000/api/student/categories', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      setCategories(response.data.categories)
-    } catch (error) {
-      console.error('Failed to fetch categories:', error)
-    }
-  }
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -220,6 +189,9 @@ const NewStudentDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Inject CSS for dropdown animation */}
+      <style>{dropdownStyles}</style>
+
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -333,59 +305,91 @@ const NewStudentDashboard = () => {
             {/* Browse Dropdown */}
             <div className="relative browse-dropdown">
               <button
-                onClick={() => {
-                  setActiveTab('browse')
-                  setShowBrowseDropdown(!showBrowseDropdown)
-                }}
-                className={`${
-                  activeTab === 'browse'
-                    ? 'border-blue-500 text-blue-600 bg-white'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 bg-white hover:bg-gray-50'
-                } whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors duration-200 rounded-t-lg shadow-sm`}
+                onClick={() => setShowBrowseDropdown(!showBrowseDropdown)}
+                className={`border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 bg-white hover:bg-gray-50 whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors duration-200 rounded-t-lg shadow-sm ${
+                  showBrowseDropdown ? 'text-blue-600 border-blue-500 bg-blue-50' : ''
+                }`}
               >
                 <Search size={16} />
                 <span>Browse</span>
                 <ChevronDown size={14} className={`transition-transform duration-200 ${showBrowseDropdown ? 'rotate-180' : ''}`} />
               </button>
-              
+
               {/* Dropdown Menu */}
               {showBrowseDropdown && (
-                <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-[60] overflow-hidden">
-                  <div className="py-1">
+                <div
+                  className="fixed bg-white rounded-lg shadow-2xl border border-gray-200 z-[99999] overflow-hidden"
+                  style={{
+                    top: '120px', // Fixed position from top of viewport
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '280px',
+                    maxHeight: '400px',
+                    animation: 'fadeIn 0.2s ease-out'
+                  }}
+                >
+                  <div className="py-3">
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <h3 className="text-sm font-semibold text-gray-900">Browse Library Resources</h3>
+                      <p className="text-xs text-gray-500 mt-1">Select a category to explore</p>
+                    </div>
                     {[
-                      { id: 'books', name: 'Books', icon: BookOpen },
-                      { id: 'thesis', name: 'Thesis', icon: FileText },
-                      { id: 'newsclipping', name: 'News Clipping', icon: Newspaper },
-                      { id: 'ebook', name: 'E-book', icon: Monitor }
+                      {
+                        id: 'books',
+                        name: 'Books',
+                        icon: BookOpen,
+                        path: '/student/browse/books',
+                        description: 'Browse physical books',
+                        bgClass: 'bg-blue-100 group-hover:bg-blue-200',
+                        iconClass: 'text-blue-600 group-hover:text-blue-700'
+                      },
+                      {
+                        id: 'ebooks',
+                        name: 'E-books',
+                        icon: Monitor,
+                        path: '/student/browse/ebooks',
+                        description: 'Digital book collection',
+                        bgClass: 'bg-indigo-100 group-hover:bg-indigo-200',
+                        iconClass: 'text-indigo-600 group-hover:text-indigo-700'
+                      },
+                      {
+                        id: 'thesis',
+                        name: 'Thesis',
+                        icon: FileText,
+                        path: '/student/browse/thesis',
+                        description: 'Academic thesis papers',
+                        bgClass: 'bg-purple-100 group-hover:bg-purple-200',
+                        iconClass: 'text-purple-600 group-hover:text-purple-700'
+                      },
+                      {
+                        id: 'news-clippings',
+                        name: 'News Clippings',
+                        icon: Newspaper,
+                        path: '/student/browse/news-clippings',
+                        description: 'News articles & clippings',
+                        bgClass: 'bg-green-100 group-hover:bg-green-200',
+                        iconClass: 'text-green-600 group-hover:text-green-700'
+                      }
                     ].map((item) => {
                       const Icon = item.icon
-                      const isSelected = selectedBrowseType === item.id
                       return (
                         <button
                           key={item.id}
                           onClick={(e) => {
                             e.stopPropagation()
-                            setSelectedBrowseType(item.id)
                             setShowBrowseDropdown(false)
-                            setActiveTab('browse')
+                            navigate(item.path)
                           }}
-                          className={`w-full text-left px-4 py-3 text-sm flex items-center space-x-3 transition-all duration-200 ${
-                            isSelected 
-                              ? 'text-blue-700 bg-blue-50 border-r-4 border-blue-500' 
-                              : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                          }`}
+                          className="w-full text-left px-4 py-3 text-sm flex items-center space-x-3 transition-all duration-200 text-gray-700 hover:bg-gray-50 group border-b border-gray-50 last:border-b-0"
                         >
-                          <div className={`p-1.5 rounded-md ${
-                            isSelected 
-                              ? 'bg-blue-100' 
-                              : 'bg-gray-100'
-                          }`}>
-                            <Icon size={16} className={isSelected ? 'text-blue-600' : 'text-gray-600'} />
+                          <div className={`p-2.5 rounded-lg transition-colors duration-200 ${item.bgClass}`}>
+                            <Icon size={18} className={`transition-colors duration-200 ${item.iconClass}`} />
                           </div>
-                          <span className="font-medium">{item.name}</span>
-                          {isSelected && (
-                            <CheckCircle size={16} className="text-blue-600 ml-auto" />
-                          )}
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900 group-hover:text-gray-900">{item.name}</div>
+                            <div className="text-xs text-gray-500 group-hover:text-gray-600 mt-0.5">{item.description}</div>
+                          </div>
+                          <ChevronDown size={14} className="text-gray-400 group-hover:text-gray-600 transform rotate-[-90deg]" />
                         </button>
                       )
                     })}
@@ -456,26 +460,6 @@ const NewStudentDashboard = () => {
           dashboardData={dashboardData}
           formatDate={formatDate}
           getStatusColor={getStatusColor}
-        />
-      )}
-
-      {activeTab === 'browse' && (
-        <BrowseBooksTab
-          availableBooks={availableBooks}
-          categories={categories}
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          selectedCategory={selectedCategory}
-          setSelectedCategory={setSelectedCategory}
-          selectedBrowseType={selectedBrowseType}
-          onReserveBook={handleReserveBook}
-          onBookClick={handleBookClick}
-          selectedBookId={selectedBookId}
-          isBookDetailsOpen={isBookDetailsOpen}
-          onCloseBookDetails={handleCloseBookDetails}
-          fetchAvailableBooks={fetchAvailableBooks}
-          fetchCategories={fetchCategories}
-          formatDate={formatDate}
         />
       )}
 
@@ -681,141 +665,6 @@ const FinesTab = ({ dashboardData, formatDate, getStatusColor }) => (
     </div>
   </div>
 )
-
-const BrowseBooksTab = ({
-  availableBooks,
-  categories,
-  searchTerm,
-  setSearchTerm,
-  selectedCategory,
-  setSelectedCategory,
-  selectedBrowseType,
-  onReserveBook,
-  onBookClick,
-  selectedBookId,
-  isBookDetailsOpen,
-  onCloseBookDetails,
-  fetchAvailableBooks,
-  fetchCategories,
-  formatDate
-}) => {
-  
-  const getContentTypeTitle = (type) => {
-    switch(type) {
-      case 'thesis': return 'Thesis'
-      case 'newsclipping': return 'News Clipping'
-      case 'ebook': return 'E-book'
-      case 'books':
-      default: return 'Books'
-    }
-  }
-
-  const getSearchPlaceholder = (type) => {
-    switch(type) {
-      case 'thesis': return 'Search thesis by title, author, or topic...'
-      case 'newsclipping': return 'Search news by title, source, or date...'
-      case 'ebook': return 'Search e-books by title, author, or ISBN...'
-      case 'books':
-      default: return 'Search books by title, author, or ISBN...'
-    }
-  }
-
-  React.useEffect(() => {
-    fetchCategories()
-    fetchAvailableBooks()
-  }, [searchTerm, selectedCategory, selectedBrowseType])
-
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-      {/* Content Type Header */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Browse {getContentTypeTitle(selectedBrowseType)}</h2>
-        <p className="text-gray-600 mt-1">Find and explore {getContentTypeTitle(selectedBrowseType).toLowerCase()} in our collection</p>
-      </div>
-      
-      {/* Search and Filter */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-2">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder={getSearchPlaceholder(selectedBrowseType)}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <Search className="absolute right-3 top-3 h-5 w-5 text-gray-400 pointer-events-none" />
-            </div>
-          </div>
-          <div>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="all">All Categories</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.name}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Content Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {availableBooks.map((item) => (
-          <Fragment key={item.id}>
-            {selectedBrowseType === 'books' ? (
-              <BookCard
-                book={item}
-                onBookClick={onBookClick}
-                onReserveBook={onReserveBook}
-              />
-            ) : selectedBrowseType === 'thesis' ? (
-              <ThesisCard
-                thesis={item}
-                onDownload={() => {}} // Add download handler if needed
-              />
-            ) : selectedBrowseType === 'newsclipping' ? (
-              <NewsClippingCard
-                newsClipping={item}
-                onDownload={() => {}} // Add download handler if needed
-              />
-            ) : selectedBrowseType === 'ebook' ? (
-              <EbookCard
-                ebook={item}
-                onDownload={() => {}} // Add download handler if needed
-              />
-            ) : null}
-
-            {/* Inline Book Details - only for books */}
-            {selectedBrowseType === 'books' && selectedBookId === item.id && (
-              <InlineBookDetails
-                bookId={selectedBookId}
-                isOpen={isBookDetailsOpen}
-                onClose={onCloseBookDetails}
-                onReserve={onReserveBook}
-                onRenew={() => {}}
-              />
-            )}
-          </Fragment>
-        ))}
-      </div>
-
-      {availableBooks.length === 0 && (
-        <div className="text-center py-12">
-          <Search className="mx-auto h-16 w-16 text-gray-400" />
-          <h3 className="mt-4 text-lg font-medium text-gray-900">No books found</h3>
-          <p className="mt-2 text-gray-500">Try adjusting your search or filter criteria</p>
-        </div>
-      )}
-    </div>
-  )
-}
 
 // Profile Tab Component
 const ProfileTab = ({ dashboardData, showNotification, updateDashboardData }) => {
@@ -1194,193 +1043,5 @@ const ProfileTab = ({ dashboardData, showNotification, updateDashboardData }) =>
     </div>
   )
 }
-
-// Individual Card Components
-const BookCard = ({ book, onBookClick, onReserveBook }) => (
-  <div
-    className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-    onClick={() => onBookClick(book.id)}
-  >
-    <div className="p-6">
-      <div className="flex items-start justify-between mb-4">
-        <div className="p-3 bg-blue-100 rounded-lg">
-          <BookOpen className="h-6 w-6 text-blue-600" />
-        </div>
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-          book.available_copies > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
-          {book.available_copies > 0 ? 'Available' : 'Not Available'}
-        </span>
-      </div>
-
-      <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{book.title}</h3>
-      <p className="text-sm text-gray-600 mb-4">by {book.author}</p>
-
-      <div className="space-y-2 text-xs text-gray-500 mb-4">
-        <div className="flex items-center">
-          <Hash size={12} className="mr-1" />
-          <span>Access No: {book.access_no}</span>
-        </div>
-        <div className="flex items-center">
-          <Building size={12} className="mr-1" />
-          <span>{book.category || 'General'}</span>
-        </div>
-        <div className="flex items-center">
-          <MapPin size={12} className="mr-1" />
-          <span>{book.location || 'Library'}</span>
-        </div>
-      </div>
-
-      <div className="flex justify-between items-center text-sm text-gray-600 mb-4">
-        <span>Total: {book.number_of_copies}</span>
-        <span>Available: {book.available_copies}</span>
-      </div>
-
-      <div className="text-center">
-        <span className="text-sm text-gray-500">Click to view details</span>
-      </div>
-    </div>
-  </div>
-)
-
-const ThesisCard = ({ thesis, onDownload }) => (
-  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-    <div className="p-6">
-      <div className="flex items-start justify-between mb-4">
-        <div className="p-3 bg-purple-100 rounded-lg">
-          <FileText className="h-6 w-6 text-purple-600" />
-        </div>
-        <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
-          {thesis.type}
-        </span>
-      </div>
-
-      <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{thesis.title}</h3>
-      <p className="text-sm text-gray-600 mb-2">by {thesis.author}</p>
-      <p className="text-sm text-gray-500 mb-4">Guide: {thesis.project_guide}</p>
-
-      <div className="space-y-2 text-xs text-gray-500 mb-4">
-        <div className="flex items-center">
-          <Hash size={12} className="mr-1" />
-          <span>Thesis No: {thesis.thesis_number}</span>
-        </div>
-        <div className="flex items-center">
-          <Building size={12} className="mr-1" />
-          <span>{thesis.college_name}</span>
-        </div>
-        <div className="flex items-center">
-          <MapPin size={12} className="mr-1" />
-          <span>{thesis.department_name}</span>
-        </div>
-      </div>
-
-      <div className="flex justify-between items-center text-sm text-gray-600 mb-4">
-        <span>Size: {thesis.pdf_file_size}</span>
-        <span>Downloads: {thesis.download_count}</span>
-      </div>
-
-      <button
-        onClick={() => onDownload(thesis.id)}
-        className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
-      >
-        <Download size={16} className="inline mr-2" />
-        Download PDF
-      </button>
-    </div>
-  </div>
-)
-
-const NewsClippingCard = ({ newsClipping, onDownload }) => (
-  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-    <div className="p-6">
-      <div className="flex items-start justify-between mb-4">
-        <div className="p-3 bg-green-100 rounded-lg">
-          <Newspaper className="h-6 w-6 text-green-600" />
-        </div>
-        <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-          {newsClipping.news_type}
-        </span>
-      </div>
-
-      <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{newsClipping.title}</h3>
-      <p className="text-sm text-gray-600 mb-2">{newsClipping.newspaper_name}</p>
-      <p className="text-sm text-gray-500 mb-4">{newsClipping.news_subject}</p>
-
-      <div className="space-y-2 text-xs text-gray-500 mb-4">
-        <div className="flex items-center">
-          <Hash size={12} className="mr-1" />
-          <span>Clipping No: {newsClipping.clipping_no}</span>
-        </div>
-        <div className="flex items-center">
-          <Calendar size={12} className="mr-1" />
-          <span>Date: {new Date(newsClipping.date).toLocaleDateString()}</span>
-        </div>
-        <div className="flex items-center">
-          <MapPin size={12} className="mr-1" />
-          <span>Pages: {newsClipping.pages}</span>
-        </div>
-      </div>
-
-      <div className="flex justify-between items-center text-sm text-gray-600 mb-4">
-        <span>Size: {newsClipping.pdf_file_size}</span>
-        <span>Downloads: {newsClipping.download_count}</span>
-      </div>
-
-      <button
-        onClick={() => onDownload(newsClipping.id)}
-        className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-      >
-        <Download size={16} className="inline mr-2" />
-        Download PDF
-      </button>
-    </div>
-  </div>
-)
-
-const EbookCard = ({ ebook, onDownload }) => (
-  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-    <div className="p-6">
-      <div className="flex items-start justify-between mb-4">
-        <div className="p-3 bg-indigo-100 rounded-lg">
-          <Monitor className="h-6 w-6 text-indigo-600" />
-        </div>
-        <span className="px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-800">
-          {ebook.type}
-        </span>
-      </div>
-
-      <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{ebook.title}</h3>
-      <p className="text-sm text-gray-600 mb-4">{ebook.subject}</p>
-
-      <div className="space-y-2 text-xs text-gray-500 mb-4">
-        <div className="flex items-center">
-          <Hash size={12} className="mr-1" />
-          <span>Access No: {ebook.access_no}</span>
-        </div>
-        <div className="flex items-center">
-          <Building size={12} className="mr-1" />
-          <span>Website: {ebook.website}</span>
-        </div>
-        {ebook.web_detail && (
-          <div className="text-xs text-gray-500">
-            <span>{ebook.web_detail}</span>
-          </div>
-        )}
-      </div>
-
-      <div className="flex justify-between items-center text-sm text-gray-600 mb-4">
-        <span>Downloads: {ebook.download_count}</span>
-      </div>
-
-      <button
-        onClick={() => window.open(ebook.website, '_blank')}
-        className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm"
-      >
-        <Monitor size={16} className="inline mr-2" />
-        Visit Website
-      </button>
-    </div>
-  </div>
-)
 
 export default NewStudentDashboard

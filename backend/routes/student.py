@@ -77,8 +77,12 @@ def browse_books():
         query = Book.query
         if search:
             query = query.filter(
-                Book.title.contains(search) | 
-                Book.author.contains(search)
+                Book.title.contains(search) |
+                Book.author.contains(search) |
+                Book.call_no.contains(search) |
+                Book.access_no.contains(search) |
+                Book.author_1.contains(search) |
+                Book.isbn.contains(search)
             )
         if category:
             query = query.filter_by(category=category)
@@ -88,14 +92,26 @@ def browse_books():
         return jsonify({
             'books': [{
                 'id': book.id,
+                'access_no': getattr(book, 'access_no', None),
+                'call_no': getattr(book, 'call_no', None),
                 'title': book.title,
-                'author': book.author,
+                'author': book.author or getattr(book, 'author_1', None),
+                'author_1': getattr(book, 'author_1', None),
+                'author_2': getattr(book, 'author_2', None),
+                'author_3': getattr(book, 'author_3', None),
+                'author_4': getattr(book, 'author_4', None),
                 'publisher': book.publisher,
-                'publication_year': book.publication_year,
+                'publication_year': getattr(book, 'publication_year', None),
                 'category': book.category,
-                'available_copies': book.available_copies,
-                'total_copies': book.total_copies,
-                'description': book.description
+                'department': getattr(book, 'department', None),
+                'location': getattr(book, 'location', None),
+                'pages': getattr(book, 'pages', None),
+                'price': float(getattr(book, 'price', 0)) if getattr(book, 'price', None) else None,
+                'edition': getattr(book, 'edition', None),
+                'isbn': getattr(book, 'isbn', None),
+                'available_copies': getattr(book, 'available_copies', 0),
+                'total_copies': getattr(book, 'number_of_copies', 1),
+                'description': getattr(book, 'description', None)
             } for book in books.items],
             'pagination': {
                 'page': books.page,

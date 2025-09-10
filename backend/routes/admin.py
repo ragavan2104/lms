@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import User, Book, Ebook, College, Department, Circulation, NewsClipping, Category, Thesis, db
+from models import User, Book, Ebook, College, Department, Circulation, NewsClipping, Category, Thesis, Holiday, db
 from datetime import datetime, date, timedelta
 import pandas as pd
 import io
@@ -139,7 +139,7 @@ def get_users():
         role = request.args.get('role')
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
-        
+
         query = User.query
         if role:
             query = query.filter_by(role=role)
@@ -257,6 +257,56 @@ def create_user():
                 'role': user.role
             }
         }), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# User Update
+@admin_bp.route('/users/<int:user_id>', methods=['PUT'])
+@admin_required
+def update_user(user_id):
+    try:
+        user = User.query.get_or_404(user_id)
+        data = request.get_json()
+
+        # Update allowed fields
+        if 'name' in data:
+            user.name = data['name']
+        if 'email' in data:
+            # Check if email is already taken by another user
+            existing_email = User.query.filter(User.email == data['email'], User.id != user_id).first()
+            if existing_email:
+                return jsonify({'error': 'Email already exists'}), 400
+            user.email = data['email']
+        if 'role' in data:
+            user.role = data['role']
+        if 'designation' in data:
+            user.designation = data['designation']
+        if 'college_id' in data:
+            user.college_id = data['college_id']
+        if 'department_id' in data:
+            user.department_id = data['department_id']
+        if 'batch_from' in data:
+            user.batch_from = data['batch_from']
+        if 'batch_to' in data:
+            user.batch_to = data['batch_to']
+        if 'validity_date' in data:
+            user.validity_date = datetime.strptime(data['validity_date'], '%Y-%m-%d').date()
+        if 'is_active' in data:
+            user.is_active = data['is_active']
+
+        db.session.commit()
+
+        return jsonify({
+            'message': 'User updated successfully',
+            'user': {
+                'id': user.id,
+                'user_id': user.user_id,
+                'name': user.name,
+                'email': user.email,
+                'role': user.role,
+                'designation': user.designation
+            }
+        }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1467,4 +1517,285 @@ def delete_thesis(thesis_id):
         
     except Exception as e:
         db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# Holiday Management Endpoints
+
+@admin_bp.route('/holidays', methods=['GET'])
+@admin_required
+def get_holidays():
+    """Get all holidays with pagination and filtering"""
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        search = request.args.get('search', '').strip()
+        is_recurring = request.args.get('is_recurring')
+
+        query = Holiday.query
+
+        # Apply search filter
+        if search:
+            query = query.filter(Holiday.name.ilike(f'%{search}%'))
+
+        # Apply recurring filter
+        if is_recurring is not None:
+            is_recurring_bool = is_recurring.lower() == 'true'
+            query = query.filter(Holiday.is_recurring == is_recurring_bool)
+
+        # Order by date
+        query = query.order_by(Holiday.date)
+
+        holidays = query.paginate(page=page, per_page=per_page, error_out=False)
+
+        return jsonify({
+            'holidays': [holiday.to_dict() for holiday in holidays.items],
+            'pagination': {
+                'page': holidays.page,
+                'pages': holidays.pages,
+                'per_page': holidays.per_page,
+                'total': holidays.total
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/holidays', methods=['POST'])
+@admin_required
+def create_holiday():
+    """Create a new holiday"""
+    try:
+        data = request.get_json()
+        name = data.get('name', '').strip()
+        holiday_date = data.get('date')
+        description = data.get('description', '').strip()
+        is_recurring = data.get('is_recurring', False)
+
+        if not name or not holiday_date:
+            return jsonify({'error': 'Name and date are required'}), 400
+
+        # Parse date
+        try:
+            parsed_date = datetime.strptime(holiday_date, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+
+        # Check for duplicate holidays on the same date
+        existing = Holiday.query.filter_by(date=parsed_date).first()
+        if existing:
+            return jsonify({'error': f'A holiday already exists on {holiday_date}: {existing.name}'}), 400
+
+        holiday = Holiday(
+            name=name,
+            date=parsed_date,
+            description=description if description else None,
+            is_recurring=is_recurring
+        )
+
+        db.session.add(holiday)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Holiday created successfully',
+            'holiday': holiday.to_dict()
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/holidays/<int:holiday_id>', methods=['PUT'])
+@admin_required
+def update_holiday(holiday_id):
+    """Update an existing holiday"""
+    try:
+        holiday = Holiday.query.get_or_404(holiday_id)
+        data = request.get_json()
+
+        name = data.get('name', '').strip()
+        holiday_date = data.get('date')
+        description = data.get('description', '').strip()
+        is_recurring = data.get('is_recurring')
+
+        if name:
+            holiday.name = name
+
+        if holiday_date:
+            try:
+                parsed_date = datetime.strptime(holiday_date, '%Y-%m-%d').date()
+                # Check for duplicate holidays on the same date (excluding current holiday)
+                existing = Holiday.query.filter(
+                    Holiday.date == parsed_date,
+                    Holiday.id != holiday_id
+                ).first()
+                if existing:
+                    return jsonify({'error': f'A holiday already exists on {holiday_date}: {existing.name}'}), 400
+                holiday.date = parsed_date
+            except ValueError:
+                return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+
+        if description is not None:
+            holiday.description = description if description else None
+
+        if is_recurring is not None:
+            holiday.is_recurring = is_recurring
+
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Holiday updated successfully',
+            'holiday': holiday.to_dict()
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/holidays/<int:holiday_id>', methods=['DELETE'])
+@admin_required
+def delete_holiday(holiday_id):
+    """Delete a holiday"""
+    try:
+        holiday = Holiday.query.get_or_404(holiday_id)
+
+        db.session.delete(holiday)
+        db.session.commit()
+
+        return jsonify({'message': 'Holiday deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/holidays/upcoming', methods=['GET'])
+@admin_required
+def get_upcoming_holidays():
+    """Get upcoming holidays"""
+    try:
+        days_ahead = int(request.args.get('days', 30))
+        upcoming_holidays = Holiday.get_upcoming_holidays(days_ahead)
+
+        return jsonify({
+            'holidays': [holiday.to_dict() for holiday in upcoming_holidays],
+            'count': len(upcoming_holidays)
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/holidays/bulk', methods=['POST'])
+@admin_required
+def bulk_import_holidays():
+    """Bulk import holidays from CSV/Excel file"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+
+        # Read file based on extension
+        if file.filename.endswith('.csv'):
+            df = pd.read_csv(file)
+        elif file.filename.endswith(('.xlsx', '.xls')):
+            df = pd.read_excel(file)
+        else:
+            return jsonify({'error': 'Unsupported file format. Use CSV or Excel files.'}), 400
+
+        # Validate required columns
+        required_columns = ['name', 'date']
+        if not all(col in df.columns for col in required_columns):
+            return jsonify({'error': f'File must contain columns: {required_columns}'}), 400
+
+        created_holidays = []
+        errors = []
+
+        for index, row in df.iterrows():
+            try:
+                name = str(row['name']).strip()
+                holiday_date = row['date']
+                description = str(row.get('description', '')).strip() if pd.notna(row.get('description')) else None
+                is_recurring = bool(row.get('is_recurring', False)) if pd.notna(row.get('is_recurring')) else False
+
+                if not name:
+                    errors.append(f"Row {index + 1}: Holiday name is required")
+                    continue
+
+                # Parse date
+                if isinstance(holiday_date, str):
+                    try:
+                        parsed_date = datetime.strptime(holiday_date, '%Y-%m-%d').date()
+                    except ValueError:
+                        try:
+                            parsed_date = datetime.strptime(holiday_date, '%m/%d/%Y').date()
+                        except ValueError:
+                            errors.append(f"Row {index + 1}: Invalid date format for '{holiday_date}'. Use YYYY-MM-DD or MM/DD/YYYY")
+                            continue
+                else:
+                    # Handle pandas datetime
+                    parsed_date = pd.to_datetime(holiday_date).date()
+
+                # Check for duplicate
+                existing = Holiday.query.filter_by(date=parsed_date).first()
+                if existing:
+                    errors.append(f"Row {index + 1}: Holiday already exists on {parsed_date}: {existing.name}")
+                    continue
+
+                holiday = Holiday(
+                    name=name,
+                    date=parsed_date,
+                    description=description,
+                    is_recurring=is_recurring
+                )
+
+                db.session.add(holiday)
+                created_holidays.append({
+                    'name': name,
+                    'date': parsed_date.isoformat(),
+                    'description': description,
+                    'is_recurring': is_recurring
+                })
+
+            except Exception as e:
+                errors.append(f"Row {index + 1}: {str(e)}")
+
+        if created_holidays:
+            db.session.commit()
+
+        return jsonify({
+            'message': f'Bulk import completed. Created {len(created_holidays)} holidays.',
+            'created_holidays': created_holidays,
+            'errors': errors,
+            'summary': {
+                'total_rows': len(df),
+                'created': len(created_holidays),
+                'errors': len(errors)
+            }
+        }), 200 if created_holidays else 400
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/holidays/export', methods=['GET'])
+@admin_required
+def export_holidays():
+    """Export holidays to CSV"""
+    try:
+        holidays = Holiday.query.order_by(Holiday.date).all()
+
+        # Create CSV data
+        output = io.StringIO()
+        output.write('name,date,description,is_recurring\n')
+
+        for holiday in holidays:
+            description = holiday.description.replace(',', ';') if holiday.description else ''
+            output.write(f'"{holiday.name}",{holiday.date},{description},{holiday.is_recurring}\n')
+
+        # Create response
+        output.seek(0)
+        return send_file(
+            io.BytesIO(output.getvalue().encode('utf-8')),
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=f'holidays_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        )
+
+    except Exception as e:
         return jsonify({'error': str(e)}), 500

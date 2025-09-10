@@ -26,6 +26,7 @@ const ManageBooks = () => {
 
   const [formData, setFormData] = useState({
     access_no: '',
+    call_no: '',
     title: '',
     author_1: '',
     author_2: '',
@@ -90,6 +91,7 @@ const ManageBooks = () => {
       setShowAddForm(false)
       setFormData({
         access_no: '',
+        call_no: '',
         title: '',
         author_1: '',
         author_2: '',
@@ -115,6 +117,7 @@ const ManageBooks = () => {
     setEditingBook(book)
     setFormData({
       access_no: book.access_no,
+      call_no: book.call_no || '',
       title: book.title,
       author_1: book.author_1 || book.author || '',
       author_2: book.author_2 || '',
@@ -142,6 +145,7 @@ const ManageBooks = () => {
       setEditingBook(null)
       setFormData({
         access_no: '',
+        call_no: '',
         title: '',
         author_1: '',
         author_2: '',
@@ -615,6 +619,7 @@ Are you absolutely sure you want to proceed?`
           <thead>
             <tr>
               <th>Access No</th>
+              <th>Call No</th>
               <th>Title</th>
               <th>Authors</th>
               <th>Publisher</th>
@@ -631,6 +636,14 @@ Are you absolutely sure you want to proceed?`
             {books.map((book) => (
               <tr key={book.id}>
                 <td>{book.access_no}</td>
+                <td>
+                  <span
+                    className="call-no-info"
+                    title={book.call_no ? `Call Number: ${book.call_no}` : 'No call number assigned'}
+                  >
+                    {book.call_no || 'N/A'}
+                  </span>
+                </td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Book size={16} color="#667eea" />
@@ -738,6 +751,20 @@ Are you absolutely sure you want to proceed?`
                         <br />Sequential numbers will be generated for all {formData.number_of_copies} copies.
                       </span>
                     )}
+                  </small>
+                </div>
+                <div className="form-group">
+                  <label>Call Number <span className="optional">(Optional)</span></label>
+                  <input
+                    type="text"
+                    name="call_no"
+                    value={formData.call_no}
+                    onChange={handleInputChange}
+                    placeholder="e.g., QA76.73.P98, 004.1 SMI"
+                    maxLength="100"
+                  />
+                  <small className="help-text">
+                    Library classification number for cataloging (Dewey Decimal, Library of Congress, etc.)
                   </small>
                 </div>
                 <div className="form-group">
@@ -1080,6 +1107,20 @@ Are you absolutely sure you want to proceed?`
                     onChange={handleInputChange}
                     required
                   />
+                </div>
+                <div className="form-group">
+                  <label>Call Number <span className="optional">(Optional)</span></label>
+                  <input
+                    type="text"
+                    name="call_no"
+                    value={formData.call_no}
+                    onChange={handleInputChange}
+                    placeholder="e.g., QA76.73.P98, 004.1 SMI"
+                    maxLength="100"
+                  />
+                  <small className="help-text">
+                    Library classification number for cataloging
+                  </small>
                 </div>
                 <div className="form-group">
                   <label>Book Title</label>

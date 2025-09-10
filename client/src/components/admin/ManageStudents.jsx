@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Plus, Upload, Download, Search, Edit, Trash2, Users, Eye, AlertTriangle } from 'lucide-react'
 import axios from 'axios'
 import StudentProfile from './StudentProfile'
+import './ManageStudents.css'
 
 const ManageStudents = ({ userRole = 'admin' }) => {
   const [students, setStudents] = useState([])
@@ -17,6 +18,7 @@ const ManageStudents = ({ userRole = 'admin' }) => {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [editingStudent, setEditingStudent] = useState(null)
+  const [roleFilter, setRoleFilter] = useState('all') // 'all', 'student', 'staff'
   const [showProfile, setShowProfile] = useState(false)
   const [selectedStudentId, setSelectedStudentId] = useState(null)
 
@@ -27,7 +29,7 @@ const ManageStudents = ({ userRole = 'admin' }) => {
     college_id: '',
     department_id: '',
     designation: 'student',
-    user_role: 'student',
+    role: 'student',
     dob: '',
     validity_date: '',
     batch_from: '',
@@ -37,12 +39,12 @@ const ManageStudents = ({ userRole = 'admin' }) => {
   const [bulkFile, setBulkFile] = useState(null)
   const [bulkCollegeId, setBulkCollegeId] = useState('')
   const [bulkDepartmentId, setBulkDepartmentId] = useState('')
-  const [bulkUserRole, setBulkUserRole] = useState('student')
+  const [bulkRole, setBulkRole] = useState('student')
 
   useEffect(() => {
     fetchStudents()
     fetchColleges()
-  }, [currentPage, searchTerm])
+  }, [currentPage, searchTerm, roleFilter])
 
   useEffect(() => {
     if (selectedCollege) {
@@ -52,18 +54,22 @@ const ManageStudents = ({ userRole = 'admin' }) => {
 
   const fetchStudents = async () => {
     try {
-      const response = await axios.get('/admin/users', {
-        params: {
-          role: 'student',
-          page: currentPage,
-          per_page: 10,
-          search: searchTerm
-        }
-      })
+      const params = {
+        page: currentPage,
+        per_page: 10,
+        search: searchTerm
+      }
+
+      // Add role filter if not 'all'
+      if (roleFilter !== 'all') {
+        params.role = roleFilter
+      }
+
+      const response = await axios.get('/admin/users', { params })
       setStudents(response.data.users)
       setTotalPages(response.data.pagination.pages)
     } catch (error) {
-      console.error('Failed to fetch students:', error)
+      console.error('Failed to fetch users:', error)
     } finally {
       setLoading(false)
     }
@@ -103,7 +109,8 @@ const ManageStudents = ({ userRole = 'admin' }) => {
 
       // Show username and password to admin
       const { username, password } = response.data.user
-      alert(`Student added successfully!\n\nLogin Credentials:\nUsername: ${username}\nPassword: ${password}\n\nPlease save these credentials and share with the student.`)
+      const userType = formData.role === 'staff' ? 'Staff member' : 'Student'
+      alert(`${userType} added successfully!\n\nLogin Credentials:\nUsername: ${username}\nPassword: ${password}\n\nPlease save these credentials and share with the ${formData.role === 'staff' ? 'staff member' : 'student'}.`)
 
       setShowAddForm(false)
       setFormData({
@@ -113,6 +120,7 @@ const ManageStudents = ({ userRole = 'admin' }) => {
         college_id: '',
         department_id: '',
         designation: 'student',
+        role: 'student',
         dob: '',
         validity_date: '',
         batch_from: '',
@@ -200,6 +208,7 @@ const ManageStudents = ({ userRole = 'admin' }) => {
       college_id: student.college_id || '',
       department_id: student.department_id || '',
       designation: student.designation,
+      role: student.role,
       dob: student.dob,
       validity_date: student.validity_date,
       batch_from: student.batch_from || '',
@@ -222,6 +231,7 @@ const ManageStudents = ({ userRole = 'admin' }) => {
         college_id: '',
         department_id: '',
         designation: 'student',
+        role: 'student',
         dob: '',
         validity_date: '',
         batch_from: '',
@@ -328,16 +338,36 @@ const ManageStudents = ({ userRole = 'admin' }) => {
   return (
     <div className="manage-students">
       <div className="page-header">
-        <h1>Manage Students</h1>
+        <div className="header-title">
+          <h1>
+            {roleFilter === 'all' ? 'Manage Users' :
+             roleFilter === 'student' ? 'Manage Students' :
+             'Manage Staff Members'}
+          </h1>
+          <p className="header-subtitle">
+            {roleFilter === 'all' ? 'View and manage all users in the system' :
+             roleFilter === 'student' ? 'View and manage student accounts' :
+             'View and manage staff member accounts'}
+          </p>
+        </div>
         <div className="header-actions">
           {userRole === 'admin' && (
             <>
               <button
                 className="btn btn-primary"
-                onClick={() => setShowAddForm(true)}
+                onClick={() => {
+                  // Set default role based on current filter
+                  const defaultRole = roleFilter === 'staff' ? 'staff' : 'student'
+                  setFormData(prev => ({
+                    ...prev,
+                    role: defaultRole,
+                    designation: defaultRole
+                  }))
+                  setShowAddForm(true)
+                }}
               >
                 <Plus size={16} />
-                Add Student
+                Add {roleFilter === 'staff' ? 'Staff Member' : 'Student'}
               </button>
               <button
                 className="btn btn-secondary"
@@ -356,18 +386,72 @@ const ManageStudents = ({ userRole = 'admin' }) => {
               <button
                 className="btn btn-danger"
                 onClick={handleBulkDelete}
-                title="Delete all students from the system"
+                title={`Delete all ${roleFilter === 'all' ? 'users' : roleFilter === 'student' ? 'students' : 'staff members'} from the system`}
               >
                 <AlertTriangle size={16} />
-                Delete All Students
+                Delete All {roleFilter === 'all' ? 'Users' : roleFilter === 'student' ? 'Students' : 'Staff'}
               </button>
             </>
           )}
           {userRole === 'librarian' && (
             <div className="librarian-note">
-              <p>View and manage student information. Contact admin to add new students.</p>
+              <p>View and manage user information. Contact admin to add new users.</p>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Role Filter Buttons */}
+      <div className="role-filter-section">
+        <div className="filter-buttons">
+          <button
+            className={`filter-btn ${roleFilter === 'all' ? 'active' : ''}`}
+            onClick={() => {
+              setRoleFilter('all')
+              setCurrentPage(1)
+            }}
+          >
+            <Users size={16} />
+            All Users
+            <span className="filter-count">
+              {roleFilter === 'all' ? students.length : ''}
+            </span>
+          </button>
+          <button
+            className={`filter-btn ${roleFilter === 'student' ? 'active' : ''}`}
+            onClick={() => {
+              setRoleFilter('student')
+              setCurrentPage(1)
+            }}
+          >
+            <Users size={16} />
+            Students Only
+            <span className="filter-count">
+              {roleFilter === 'student' ? students.length : ''}
+            </span>
+          </button>
+          <button
+            className={`filter-btn ${roleFilter === 'staff' ? 'active' : ''}`}
+            onClick={() => {
+              setRoleFilter('staff')
+              setCurrentPage(1)
+            }}
+          >
+            <Users size={16} />
+            Staff Only
+            <span className="filter-count">
+              {roleFilter === 'staff' ? students.length : ''}
+            </span>
+          </button>
+        </div>
+        <div className="filter-info">
+          <span className="current-filter">
+            Currently showing: <strong>
+              {roleFilter === 'all' ? 'All Users' :
+               roleFilter === 'student' ? 'Students Only' :
+               'Staff Members Only'}
+            </strong>
+          </span>
         </div>
       </div>
 
@@ -390,6 +474,7 @@ const ManageStudents = ({ userRole = 'admin' }) => {
               <th>User ID</th>
               <th>Name</th>
               <th>Email</th>
+              {roleFilter === 'all' && <th>Role</th>}
               <th>College</th>
               <th>Department</th>
               <th>Validity Date</th>
@@ -399,12 +484,36 @@ const ManageStudents = ({ userRole = 'admin' }) => {
           </thead>
           <tbody>
             {students.map((student) => (
-              <tr key={student.id}>
-                <td>{student.user_id}</td>
-                <td>{student.name}</td>
+              <tr key={student.id} className={`user-row ${student.role}`}>
+                <td>
+                  <div className="user-id-cell">
+                    <span className="user-id">{student.user_id}</span>
+                    {student.role === 'staff' && (
+                      <span className="role-badge staff">Staff</span>
+                    )}
+                  </div>
+                </td>
+                <td>
+                  <div className="user-name-cell">
+                    <span className="user-name">{student.name}</span>
+                    {student.designation && (
+                      <span className="designation">{student.designation}</span>
+                    )}
+                  </div>
+                </td>
                 <td>{student.email}</td>
-                <td>{student.college}</td>
-                <td>{student.department}</td>
+                {roleFilter === 'all' && (
+                  <td>
+                    <span className={`role-tag ${student.role}`}>
+                      {student.role === 'student' ? 'Student' :
+                       student.role === 'staff' ? 'Staff' :
+                       student.role === 'librarian' ? 'Librarian' :
+                       student.role === 'admin' ? 'Admin' : student.role}
+                    </span>
+                  </td>
+                )}
+                <td>{student.college || 'N/A'}</td>
+                <td>{student.department || 'N/A'}</td>
                 <td>{new Date(student.validity_date).toLocaleDateString()}</td>
                 <td>
                   <span className={`status ${student.is_active ? 'active' : 'inactive'}`}>
@@ -465,18 +574,56 @@ const ManageStudents = ({ userRole = 'admin' }) => {
         <div className="modal">
           <div className="modal-content">
             <div className="modal-header">
-              <h2>Add New Student</h2>
+              <h2>Add New {formData.role === 'staff' ? 'Staff Member' : 'Student'}</h2>
               <button onClick={() => setShowAddForm(false)}>×</button>
             </div>
             <form onSubmit={handleSubmit}>
+              {/* Role Selection */}
+              <div className="role-selection">
+                <h4>User Type</h4>
+                <div className="role-options">
+                  <label className={`role-option ${formData.role === 'student' ? 'selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="role"
+                      value="student"
+                      checked={formData.role === 'student'}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        role: e.target.value,
+                        designation: e.target.value
+                      }))}
+                    />
+                    <Users size={16} />
+                    Student
+                  </label>
+                  <label className={`role-option ${formData.role === 'staff' ? 'selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="role"
+                      value="staff"
+                      checked={formData.role === 'staff'}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        role: e.target.value,
+                        designation: e.target.value
+                      }))}
+                    />
+                    <Users size={16} />
+                    Staff Member
+                  </label>
+                </div>
+              </div>
+
               <div className="form-grid">
                 <div className="form-group">
-                  <label>User ID (Roll Number)</label>
+                  <label>{formData.role === 'staff' ? 'Employee ID' : 'User ID (Roll Number)'}</label>
                   <input
                     type="text"
                     name="user_id"
                     value={formData.user_id}
                     onChange={handleInputChange}
+                    placeholder={formData.role === 'staff' ? 'Enter employee ID' : 'Enter roll number'}
                     required
                   />
                 </div>
@@ -597,7 +744,7 @@ const ManageStudents = ({ userRole = 'admin' }) => {
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Add Student
+                  Add {formData.role === 'staff' ? 'Staff Member' : 'Student'}
                 </button>
               </div>
             </form>
@@ -700,6 +847,7 @@ const ManageStudents = ({ userRole = 'admin' }) => {
                   college_id: '',
                   department_id: '',
                   designation: 'student',
+                  role: 'student',
                   dob: '',
                   validity_date: ''
                 })
@@ -829,6 +977,7 @@ const ManageStudents = ({ userRole = 'admin' }) => {
                     college_id: '',
                     department_id: '',
                     designation: 'student',
+                    role: 'student',
                     dob: '',
                     validity_date: '',
                     batch_from: '',
