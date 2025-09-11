@@ -1,11 +1,13 @@
 import React, { useState, useEffect, Fragment } from 'react';
-import { Book, Search, Filter, Building, User, Calendar, Hash } from 'lucide-react';
+import { Book, Search, Filter, Building, User, Calendar, Hash, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 // Assuming InlineBookDetails is in the same directory or correctly imported
 import InlineBookDetails from './InlineBookDetails'; // Make sure this path is correct
 import ReservationModal from './ReservationModal';
 
 const AvailableBooks = () => {
+  const navigate = useNavigate();
   const [books, setBooks] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -158,12 +160,41 @@ const AvailableBooks = () => {
     }
   };
 
+  const handleBackToHome = () => {
+    navigate('/student/dashboard');
+  };
+
   return (
     <div className="available-books">
       <div className="page-header">
-        <div>
-          <h1>Available Books</h1>
-          <p>Browse and discover books in our library collection</p>
+        <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+          <button
+            onClick={handleBackToHome}
+            className="back-button"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 1rem',
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.5rem',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              transition: 'background-color 0.2s ease'
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = '#2563eb'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = '#3b82f6'}
+          >
+            <ArrowLeft size={20} />
+            <span>Back to Home</span>
+          </button>
+          <div className="header-text">
+            <h1>Available Books</h1>
+            <p>Browse and discover books in our library collection</p>
+          </div>
         </div>
       </div>
 

@@ -70,14 +70,14 @@ const AdminHome = () => {
       title: 'E-Books',
       value: stats.totalEbooks,
       icon: Monitor,
-      color: 'green',
+      color: 'red',
       description: 'Total number of e-books'
     },
     {
       title: 'E-Journals',
       value: stats.totalEjournals,
       icon: Globe,
-      color: 'teal',
+      color: 'green',
       description: 'Total number of e-journals'
     },
     {
@@ -105,7 +105,7 @@ const AdminHome = () => {
       title: 'Thesis Documents',
       value: stats.totalThesis,
       icon: FileText,
-      color: 'yellow',
+      color: 'teal',
       description: 'Total number of thesis documents'
     }
   ]

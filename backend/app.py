@@ -260,9 +260,7 @@ class Journal(db.Model):
     __tablename__ = 'journals'
 
     id = db.Column(db.Integer, primary_key=True)
-    access_no = db.Column(db.String(50), nullable=False, unique=True)
     journal_name = db.Column(db.String(300), nullable=False)
-    publication = db.Column(db.String(200), nullable=False)
     journal_type = db.Column(db.String(50), nullable=False)  # National Journal, International Journal
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -13556,6 +13554,288 @@ def fix_librarian_login():
             'updated_count': updated_count
         }), 200
         
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Journal Management API Endpoints
+@app.route('/api/admin/journals', methods=['GET'])
+@jwt_required()
+def admin_get_journals():
+    try:
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id)
+        if not user or user.role not in ['admin', 'librarian']:
+            return jsonify({'error': 'Admin or Librarian access required'}), 403
+
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        search = request.args.get('search', '')
+        journal_type = request.args.get('journal_type', '')
+
+        query = Journal.query
+
+        if search:
+            query = query.filter(Journal.journal_name.contains(search))
+
+        if journal_type:
+            query = query.filter(Journal.journal_type == journal_type)
+
+        journals = query.paginate(page=page, per_page=per_page, error_out=False)
+
+        return jsonify({
+            'journals': [{
+                'id': journal.id,
+                'journal_name': journal.journal_name,
+                'journal_type': journal.journal_type,
+                'created_at': journal.created_at.isoformat() if journal.created_at else None
+            } for journal in journals.items],
+            'pagination': {
+                'page': journals.page,
+                'pages': journals.pages,
+                'per_page': journals.per_page,
+                'total': journals.total
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/journals', methods=['POST'])
+@jwt_required()
+def admin_create_journal():
+    try:
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id)
+        if not user or user.role not in ['admin', 'librarian']:
+            return jsonify({'error': 'Admin or Librarian access required'}), 403
+
+        data = request.get_json()
+
+        if not data.get('journal_name') or not data.get('journal_type'):
+            return jsonify({'error': 'Journal name and type are required'}), 400
+
+        if data.get('journal_type') not in ['National Journal', 'International Journal']:
+            return jsonify({'error': 'Invalid journal type'}), 400
+
+        journal = Journal(
+            journal_name=data['journal_name'],
+            journal_type=data['journal_type']
+        )
+
+        db.session.add(journal)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Journal created successfully',
+            'journal': {
+                'id': journal.id,
+                'journal_name': journal.journal_name,
+                'journal_type': journal.journal_type
+            }
+        }), 201
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/journals/<int:journal_id>', methods=['PUT'])
+@jwt_required()
+def admin_update_journal(journal_id):
+    try:
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id)
+        if not user or user.role not in ['admin', 'librarian']:
+            return jsonify({'error': 'Admin or Librarian access required'}), 403
+
+        journal = Journal.query.get_or_404(journal_id)
+        data = request.get_json()
+
+        if not data.get('journal_name') or not data.get('journal_type'):
+            return jsonify({'error': 'Journal name and type are required'}), 400
+
+        if data.get('journal_type') not in ['National Journal', 'International Journal']:
+            return jsonify({'error': 'Invalid journal type'}), 400
+
+        journal.journal_name = data['journal_name']
+        journal.journal_type = data['journal_type']
+        journal.updated_at = datetime.utcnow()
+
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Journal updated successfully',
+            'journal': {
+                'id': journal.id,
+                'journal_name': journal.journal_name,
+                'journal_type': journal.journal_type
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/journals/<int:journal_id>', methods=['DELETE'])
+@jwt_required()
+def admin_delete_journal(journal_id):
+    try:
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id)
+        if not user or user.role not in ['admin', 'librarian']:
+            return jsonify({'error': 'Admin or Librarian access required'}), 403
+
+        journal = Journal.query.get_or_404(journal_id)
+        db.session.delete(journal)
+        db.session.commit()
+
+        return jsonify({'message': 'Journal deleted successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/journals/bulk', methods=['POST'])
+@jwt_required()
+def admin_bulk_upload_journals():
+    try:
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id)
+        if not user or user.role not in ['admin', 'librarian']:
+            return jsonify({'error': 'Admin or Librarian access required'}), 403
+
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
+
+        file = request.files['file']
+        journal_type = request.form.get('journal_type')
+
+        if not journal_type or journal_type not in ['National Journal', 'International Journal']:
+            return jsonify({'error': 'Valid journal type is required'}), 400
+
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+
+        if not file.filename.lower().endswith(('.xlsx', '.xls', '.csv')):
+            return jsonify({'error': 'Invalid file format. Please upload Excel or CSV file'}), 400
+
+        # Read the file
+        try:
+            if file.filename.lower().endswith('.csv'):
+                df = pd.read_csv(file)
+            else:
+                df = pd.read_excel(file)
+        except Exception as e:
+            return jsonify({'error': f'Error reading file: {str(e)}'}), 400
+
+        # Validate required columns
+        required_columns = ['journal_name']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            return jsonify({'error': f'Missing required columns: {", ".join(missing_columns)}'}), 400
+
+        journals_created = 0
+        errors = []
+
+        for index, row in df.iterrows():
+            try:
+                if pd.isna(row['journal_name']) or str(row['journal_name']).strip() == '':
+                    errors.append(f'Row {index + 2}: Journal name is required')
+                    continue
+
+                journal = Journal(
+                    journal_name=str(row['journal_name']).strip(),
+                    journal_type=journal_type
+                )
+
+                db.session.add(journal)
+                journals_created += 1
+
+            except Exception as e:
+                errors.append(f'Row {index + 2}: {str(e)}')
+
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': f'Database error: {str(e)}'}), 500
+
+        return jsonify({
+            'message': f'Successfully uploaded {journals_created} journals',
+            'journals_created': journals_created,
+            'errors': errors
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/journals/sample-template', methods=['GET'])
+@jwt_required()
+def admin_download_journal_template():
+    try:
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id)
+        if not user or user.role not in ['admin', 'librarian']:
+            return jsonify({'error': 'Admin or Librarian access required'}), 403
+
+        # Create sample data
+        sample_data = {
+            'journal_name': [
+                'International Journal of Computer Science',
+                'National Journal of Engineering Research',
+                'Journal of Applied Mathematics'
+            ]
+        }
+
+        df = pd.DataFrame(sample_data)
+
+        # Create Excel file in memory
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Journals', index=False)
+
+        output.seek(0)
+
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name='journal_sample_template.xlsx'
+        )
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Public Journal API Endpoint
+@app.route('/api/public/journals', methods=['GET'])
+def public_get_journals():
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 12))
+        search = request.args.get('search', '')
+        journal_type = request.args.get('journal_type', '')
+
+        query = Journal.query
+
+        if search:
+            query = query.filter(Journal.journal_name.contains(search))
+
+        if journal_type:
+            query = query.filter(Journal.journal_type == journal_type)
+
+        journals = query.paginate(page=page, per_page=per_page, error_out=False)
+
+        return jsonify({
+            'journals': [{
+                'id': journal.id,
+                'journal_name': journal.journal_name,
+                'journal_type': journal.journal_type,
+                'created_at': journal.created_at.isoformat() if journal.created_at else None
+            } for journal in journals.items],
+            'pagination': {
+                'page': journals.page,
+                'pages': journals.pages,
+                'per_page': journals.per_page,
+                'total': journals.total
+            }
+        }), 200
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

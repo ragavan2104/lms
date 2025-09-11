@@ -16,9 +16,7 @@ const ManageJournals = ({ userRole = 'admin' }) => {
   const [editingJournal, setEditingJournal] = useState(null)
 
   const [formData, setFormData] = useState({
-    access_no: '',
     journal_name: '',
-    publication: '',
     journal_type: ''
   })
 
@@ -85,9 +83,7 @@ const ManageJournals = ({ userRole = 'admin' }) => {
   const handleEdit = (journal) => {
     setEditingJournal(journal)
     setFormData({
-      access_no: journal.access_no,
       journal_name: journal.journal_name,
-      publication: journal.publication,
       journal_type: journal.journal_type
     })
     setShowEditForm(true)
@@ -167,9 +163,7 @@ const ManageJournals = ({ userRole = 'admin' }) => {
 
   const resetForm = () => {
     setFormData({
-      access_no: '',
       journal_name: '',
-      publication: '',
       journal_type: ''
     })
   }
@@ -243,9 +237,7 @@ const ManageJournals = ({ userRole = 'admin' }) => {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Access No</th>
                 <th>Journal Name</th>
-                <th>Publication</th>
                 <th>Type</th>
                 <th>Created</th>
                 <th>Actions</th>
@@ -254,14 +246,12 @@ const ManageJournals = ({ userRole = 'admin' }) => {
             <tbody>
               {journals.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="no-data">No journals found</td>
+                  <td colSpan="4" className="no-data">No journals found</td>
                 </tr>
               ) : (
                 journals.map((journal) => (
                   <tr key={journal.id}>
-                    <td>{journal.access_no}</td>
                     <td>{journal.journal_name}</td>
-                    <td>{journal.publication}</td>
                     <td>
                       <span className={`type-badge ${journal.journal_type === 'International Journal' ? 'international' : 'national'}`}>
                         {journal.journal_type}
@@ -327,16 +317,6 @@ const ManageJournals = ({ userRole = 'admin' }) => {
             </div>
             <form onSubmit={handleSubmit} className="modal-body">
               <div className="form-group">
-                <label>Access Number <span className="required">*</span></label>
-                <input
-                  type="text"
-                  value={formData.access_no}
-                  onChange={(e) => setFormData({...formData, access_no: e.target.value})}
-                  required
-                  placeholder="e.g., JNL001"
-                />
-              </div>
-              <div className="form-group">
                 <label>Journal Name <span className="required">*</span></label>
                 <input
                   type="text"
@@ -344,16 +324,6 @@ const ManageJournals = ({ userRole = 'admin' }) => {
                   onChange={(e) => setFormData({...formData, journal_name: e.target.value})}
                   required
                   placeholder="Full journal name"
-                />
-              </div>
-              <div className="form-group">
-                <label>Publication <span className="required">*</span></label>
-                <input
-                  type="text"
-                  value={formData.publication}
-                  onChange={(e) => setFormData({...formData, publication: e.target.value})}
-                  required
-                  placeholder="Publisher/publishing house name"
                 />
               </div>
               <div className="form-group">
@@ -391,16 +361,6 @@ const ManageJournals = ({ userRole = 'admin' }) => {
             </div>
             <form onSubmit={handleSubmit} className="modal-body">
               <div className="form-group">
-                <label>Access Number <span className="required">*</span></label>
-                <input
-                  type="text"
-                  value={formData.access_no}
-                  onChange={(e) => setFormData({...formData, access_no: e.target.value})}
-                  required
-                  placeholder="e.g., JNL001"
-                />
-              </div>
-              <div className="form-group">
                 <label>Journal Name <span className="required">*</span></label>
                 <input
                   type="text"
@@ -408,16 +368,6 @@ const ManageJournals = ({ userRole = 'admin' }) => {
                   onChange={(e) => setFormData({...formData, journal_name: e.target.value})}
                   required
                   placeholder="Full journal name"
-                />
-              </div>
-              <div className="form-group">
-                <label>Publication <span className="required">*</span></label>
-                <input
-                  type="text"
-                  value={formData.publication}
-                  onChange={(e) => setFormData({...formData, publication: e.target.value})}
-                  required
-                  placeholder="Publisher/publishing house name"
                 />
               </div>
               <div className="form-group">
@@ -476,7 +426,7 @@ const ManageJournals = ({ userRole = 'admin' }) => {
                   required
                 />
                 <small>
-                  Excel file should contain columns: access_no, journal_name, publication<br/>
+                  Excel file should contain column: journal_name<br/>
                   <button
                     type="button"
                     className="link-btn"
@@ -492,9 +442,9 @@ const ManageJournals = ({ userRole = 'admin' }) => {
                 <div>
                   <strong>Important:</strong>
                   <ul>
-                    <li>Access numbers must be unique</li>
-                    <li>All required fields must be filled</li>
-                    <li>Duplicate access numbers will be skipped</li>
+                    <li>Journal names are required</li>
+                    <li>All journals will be assigned the selected type</li>
+                    <li>Duplicate journal names will be skipped</li>
                   </ul>
                 </div>
               </div>

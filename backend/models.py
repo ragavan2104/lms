@@ -178,20 +178,7 @@ class Journal(db.Model):
     __tablename__ = 'journals'
 
     id = db.Column(db.Integer, primary_key=True)
-    access_no = db.Column(db.String(50), nullable=False, unique=True)
     journal_name = db.Column(db.String(300), nullable=False)
-    publication = db.Column(db.String(200), nullable=False)
-    journal_type = db.Column(db.String(50), nullable=False)  # National Journal, International Journal
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-class Journal(db.Model):
-    __tablename__ = 'journals'
-
-    id = db.Column(db.Integer, primary_key=True)
-    access_no = db.Column(db.String(50), nullable=False, unique=True)
-    journal_name = db.Column(db.String(300), nullable=False)
-    publication = db.Column(db.String(200), nullable=False)
     journal_type = db.Column(db.String(50), nullable=False)  # National Journal, International Journal
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

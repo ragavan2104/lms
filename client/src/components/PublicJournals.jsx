@@ -107,7 +107,7 @@ const PublicJournals = () => {
               <Search className="absolute right-28 h-5 w-5 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search by name, publication, or access number..."
+                placeholder="Search by journal name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full bg-transparent pl-12 pr-4 py-3 text-base text-slate-800 placeholder-slate-400 outline-none"
@@ -199,7 +199,7 @@ const PublicJournals = () => {
                     key={journal.id}
                     className="bg-white rounded-xl p-6 shadow-md transition-all duration-200 hover:-translate-y-1 hover:shadow-lg flex flex-col"
                   >
-                    <div className="flex justify-between items-center mb-4">
+                    <div className="flex justify-center items-center mb-4">
                       <div className="flex items-center gap-2">
                         <Tag size={16} className="text-slate-400" />
                         <span
@@ -212,19 +212,12 @@ const PublicJournals = () => {
                           {journal.journal_type}
                         </span>
                       </div>
-                      <div className="bg-slate-100 text-slate-600 py-1.5 px-3 rounded-md text-sm font-mono font-semibold">
-                        {journal.access_no}
-                      </div>
                     </div>
 
                     <div className="flex-grow">
-                      <h3 className="text-lg font-bold text-slate-800 leading-snug mb-3">
+                      <h3 className="text-lg font-bold text-slate-800 leading-snug mb-3 text-center">
                         {journal.journal_name}
                       </h3>
-                      <div className="flex items-center gap-2 text-slate-500 text-sm">
-                        <Building size={16} />
-                        <span>{journal.publication}</span>
-                      </div>
                     </div>
 
                     <div className="mt-5">

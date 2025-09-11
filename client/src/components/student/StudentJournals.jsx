@@ -100,7 +100,7 @@ const StudentJournals = () => {
                   <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                   <input
                     type="text"
-                    placeholder="Search journals by name, publication, or access number..."
+                    placeholder="Search journals by name..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -188,7 +188,7 @@ const StudentJournals = () => {
               {journals.map((journal) => (
                 <div key={journal.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                   <div className="p-6">
-                    <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center justify-center mb-4">
                       <div className="flex items-center space-x-2">
                         <Tag size={16} className="text-gray-400" />
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${
@@ -199,19 +199,11 @@ const StudentJournals = () => {
                           {journal.journal_type}
                         </span>
                       </div>
-                      <div className="text-sm font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                        {journal.access_no}
-                      </div>
                     </div>
 
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3 line-clamp-2">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 line-clamp-2 text-center">
                       {journal.journal_name}
                     </h3>
-
-                    <div className="flex items-center space-x-2 text-gray-600 mb-4">
-                      <Building size={16} />
-                      <span className="text-sm">{journal.publication}</span>
-                    </div>
 
                     <div className="flex items-center justify-between">
                       <button className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 transition-colors">
