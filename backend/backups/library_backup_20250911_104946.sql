@@ -166,6 +166,11 @@ CREATE TABLE journals (
 	PRIMARY KEY (id), 
 	UNIQUE (access_no)
 );
+INSERT INTO "journals" VALUES(1,'JNL001','Journal of Computer Science and Technology','IEEE Computer Society','International Journal',NULL,NULL);
+INSERT INTO "journals" VALUES(2,'JNL002','Indian Journal of Engineering Research','Academic Publishers India','National Journal',NULL,NULL);
+INSERT INTO "journals" VALUES(3,'JNL003','International Journal of Software Engineering','Springer','International Journal',NULL,NULL);
+INSERT INTO "journals" VALUES(4,'JNL004','National Journal of Mathematics','Mathematical Society of India','National Journal',NULL,NULL);
+INSERT INTO "journals" VALUES(5,'JNL005','IEEE Transactions on Software Engineering','IEEE','International Journal',NULL,NULL);
 CREATE TABLE news_clippings (
 	id INTEGER NOT NULL, 
 	clipping_no VARCHAR(50) NOT NULL, 
@@ -240,6 +245,7 @@ INSERT INTO "settings" VALUES(4,'daily_fine_rate','1','Daily fine rate for overd
 INSERT INTO "settings" VALUES(5,'max_renewal_count','2','Maximum number of times a book can be renewed','2025-07-31 02:25:13.815112','2025-08-21 08:57:42.784154');
 INSERT INTO "settings" VALUES(6,'renewal_period_days','7','Number of days added when a book is renewed','2025-07-31 02:25:13.820647','2025-08-21 08:57:42.809159');
 INSERT INTO "settings" VALUES(7,'overdue_grace_period','0','Grace period in days before fines are applied','2025-07-31 02:25:13.826125','2025-08-21 08:57:42.796153');
+INSERT INTO "settings" VALUES(8,'apply_fines_on_sunday','True','Whether to apply fines on Sundays for overdue books','2025-09-11 04:17:26.959020','2025-09-11 04:17:30.843815');
 CREATE TABLE "thesis" (
             id INTEGER NOT NULL,
             thesis_number VARCHAR(50) NOT NULL,

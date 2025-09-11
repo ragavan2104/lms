@@ -166,6 +166,11 @@ CREATE TABLE journals (
 	PRIMARY KEY (id), 
 	UNIQUE (access_no)
 );
+INSERT INTO "journals" VALUES(1,'JNL001','Journal of Computer Science and Technology','IEEE Computer Society','International Journal',NULL,NULL);
+INSERT INTO "journals" VALUES(2,'JNL002','Indian Journal of Engineering Research','Academic Publishers India','National Journal',NULL,NULL);
+INSERT INTO "journals" VALUES(3,'JNL003','International Journal of Software Engineering','Springer','International Journal',NULL,NULL);
+INSERT INTO "journals" VALUES(4,'JNL004','National Journal of Mathematics','Mathematical Society of India','National Journal',NULL,NULL);
+INSERT INTO "journals" VALUES(5,'JNL005','IEEE Transactions on Software Engineering','IEEE','International Journal',NULL,NULL);
 CREATE TABLE news_clippings (
 	id INTEGER NOT NULL, 
 	clipping_no VARCHAR(50) NOT NULL, 

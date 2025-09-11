@@ -103,6 +103,7 @@ const Sidebar = ({ userRole }) => {
 
     // Reports items
     const reportItems = [
+      { path: `${baseUrl}/overall-report`, label: 'Overall Report', icon: FileText },
       { path: `${baseUrl}/fine-reports`, label: 'Fine Reports', icon: FileText },
       { path: `${baseUrl}/counter-reports`, label: 'Counter Reports', icon: BarChart3 },
       { path: `${baseUrl}/gate-entry-reports`, label: 'Gate Entry Reports', icon: Shield },

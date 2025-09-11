@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Calendar, Plus, Edit, Trash2, Search, Filter, Upload, Download, AlertCircle, CheckCircle } from 'lucide-react'
+import { Calendar, Plus, Edit, Trash2, Search, Filter, Upload, Download, AlertCircle, CheckCircle, Settings } from 'lucide-react'
 import axios from 'axios'
 
 const ManageHolidays = () => {
@@ -13,6 +13,8 @@ const ManageHolidays = () => {
   const [filterRecurring, setFilterRecurring] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [applyFinesOnSunday, setApplyFinesOnSunday] = useState(true)
+  const [savingSundaySetting, setSavingSundaySetting] = useState(false)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -25,6 +27,7 @@ const ManageHolidays = () => {
 
   useEffect(() => {
     fetchHolidays()
+    fetchSundayFineSetting()
   }, [currentPage, searchTerm, filterRecurring])
 
   const fetchHolidays = async () => {
@@ -46,6 +49,31 @@ const ManageHolidays = () => {
       alert('Failed to fetch holidays')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchSundayFineSetting = async () => {
+    try {
+      const response = await axios.get('/admin/sunday-fine-setting')
+      setApplyFinesOnSunday(response.data.apply_fines_on_sunday)
+    } catch (error) {
+      console.error('Error fetching Sunday fine setting:', error)
+    }
+  }
+
+  const updateSundayFineSetting = async (newValue) => {
+    try {
+      setSavingSundaySetting(true)
+      await axios.post('/admin/sunday-fine-setting', {
+        apply_fines_on_sunday: newValue
+      })
+      setApplyFinesOnSunday(newValue)
+      alert('Sunday fine setting updated successfully!')
+    } catch (error) {
+      console.error('Error updating Sunday fine setting:', error)
+      alert('Failed to update Sunday fine setting')
+    } finally {
+      setSavingSundaySetting(false)
     }
   }
 
@@ -175,6 +203,12 @@ const ManageHolidays = () => {
 
   return (
     <div className="manage-holidays">
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
       <div className="page-header">
         <div className="header-content">
           <div className="header-left">
@@ -206,6 +240,63 @@ const ManageHolidays = () => {
               <Plus size={16} />
               Add Holiday
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Sunday Fine Setting */}
+      <div className="settings-section" style={{
+        backgroundColor: '#f8f9fa',
+        border: '1px solid #e9ecef',
+        borderRadius: '8px',
+        padding: '16px',
+        marginBottom: '24px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Settings size={20} style={{ color: '#6c757d' }} />
+            <div>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#495057' }}>
+                Sunday Fine Policy
+              </h3>
+              <p style={{ margin: 0, fontSize: '14px', color: '#6c757d' }}>
+                Configure whether fines are applied on Sundays for overdue books
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#495057',
+              cursor: 'pointer'
+            }}>
+              <input
+                type="checkbox"
+                checked={applyFinesOnSunday}
+                onChange={(e) => updateSundayFineSetting(e.target.checked)}
+                disabled={savingSundaySetting}
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  accentColor: '#007bff'
+                }}
+              />
+              {applyFinesOnSunday ? 'Apply fines on Sundays' : 'Skip fines on Sundays'}
+            </label>
+            {savingSundaySetting && (
+              <div style={{
+                width: '16px',
+                height: '16px',
+                border: '2px solid #f3f3f3',
+                borderTop: '2px solid #007bff',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }}></div>
+            )}
           </div>
         </div>
       </div>

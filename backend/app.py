@@ -5839,6 +5839,316 @@ def get_overall_report():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# Overall Report API with College and Department Breakdown
+@app.route('/api/admin/overall-report-detailed', methods=['GET'])
+@jwt_required()
+def get_overall_report_detailed():
+    try:
+        current_user_id = int(get_jwt_identity())
+        current_user = User.query.get(current_user_id)
+        if not current_user or current_user.role not in ['admin', 'librarian']:
+            return jsonify({'error': 'Admin/Librarian access required'}), 403
+
+        # College and Department Breakdown
+        colleges_data = []
+        total_students_system = 0
+
+        colleges = College.query.all()
+        for college in colleges:
+            departments_data = []
+            total_students_college = 0
+
+            departments = Department.query.filter_by(college_id=college.id).all()
+            for department in departments:
+                student_count = User.query.filter_by(
+                    college_id=college.id,
+                    department_id=department.id,
+                    role='student'
+                ).count()
+
+                departments_data.append({
+                    'id': department.id,
+                    'name': department.name,
+                    'code': department.code,
+                    'student_count': student_count
+                })
+                total_students_college += student_count
+
+            colleges_data.append({
+                'id': college.id,
+                'name': college.name,
+                'code': college.code,
+                'total_students': total_students_college,
+                'departments': departments_data
+            })
+            total_students_system += total_students_college
+
+        # Library Collection Statistics
+        # Books
+        total_book_titles = db.session.query(db.func.count(db.func.distinct(Book.title))).scalar() or 0
+        total_book_volumes = db.session.query(db.func.sum(Book.number_of_copies)).scalar() or 0
+
+        # Journals
+        total_journals = Journal.query.count()
+        national_journals = Journal.query.filter_by(journal_type='National Journal').count()
+        international_journals = Journal.query.filter_by(journal_type='International Journal').count()
+
+        # E-Resources
+        total_ebooks = Ebook.query.filter_by(type='E-book').count()
+        total_ejournals = Ebook.query.filter_by(type='E-journal').count()
+
+        # Thesis
+        total_thesis = Thesis.query.count()
+
+        return jsonify({
+            'college_department_breakdown': {
+                'total_students_system': total_students_system,
+                'total_colleges': len(colleges_data),
+                'colleges': colleges_data
+            },
+            'library_collection_statistics': {
+                'books': {
+                    'total_titles': total_book_titles,
+                    'total_volumes': total_book_volumes
+                },
+                'journals': {
+                    'total_journals': total_journals,
+                    'national_journals': national_journals,
+                    'international_journals': international_journals,
+                    'breakdown': [
+                        {'type': 'National Journals', 'count': national_journals},
+                        {'type': 'International Journals', 'count': international_journals}
+                    ]
+                },
+                'eresources': {
+                    'total_ebooks': total_ebooks,
+                    'total_ejournals': total_ejournals
+                },
+                'thesis': {
+                    'total_thesis': total_thesis
+                }
+            },
+            'summary': {
+                'total_physical_resources': total_book_volumes,
+                'total_digital_resources': total_ebooks + total_ejournals + total_journals,
+                'total_academic_resources': total_thesis,
+                'grand_total': total_book_volumes + total_ebooks + total_ejournals + total_journals + total_thesis
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Overall Report PDF Generation
+@app.route('/api/admin/overall-report-pdf', methods=['GET'])
+@jwt_required()
+def generate_overall_report_pdf():
+    try:
+        current_user_id = int(get_jwt_identity())
+        current_user = User.query.get(current_user_id)
+        if not current_user or current_user.role not in ['admin', 'librarian']:
+            return jsonify({'error': 'Admin/Librarian access required'}), 403
+
+        # Get the same data as the detailed report
+        # College and Department Breakdown
+        colleges_data = []
+        total_students_system = 0
+
+        colleges = College.query.all()
+        for college in colleges:
+            departments_data = []
+            total_students_college = 0
+
+            departments = Department.query.filter_by(college_id=college.id).all()
+            for department in departments:
+                student_count = User.query.filter_by(
+                    college_id=college.id,
+                    department_id=department.id,
+                    role='student'
+                ).count()
+
+                departments_data.append({
+                    'name': department.name,
+                    'code': department.code,
+                    'student_count': student_count
+                })
+                total_students_college += student_count
+
+            colleges_data.append({
+                'name': college.name,
+                'code': college.code,
+                'total_students': total_students_college,
+                'departments': departments_data
+            })
+            total_students_system += total_students_college
+
+        # Library Collection Statistics
+        total_book_titles = db.session.query(db.func.count(db.func.distinct(Book.title))).scalar() or 0
+        total_book_volumes = db.session.query(db.func.sum(Book.number_of_copies)).scalar() or 0
+        total_journals = Journal.query.count()
+        national_journals = Journal.query.filter_by(journal_type='National Journal').count()
+        international_journals = Journal.query.filter_by(journal_type='International Journal').count()
+        total_ebooks = Ebook.query.filter_by(type='E-book').count()
+        total_ejournals = Ebook.query.filter_by(type='E-journal').count()
+        total_thesis = Thesis.query.count()
+
+        # Generate PDF using ReportLab
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        story = []
+        styles = getSampleStyleSheet()
+
+        # Title
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            spaceAfter=30,
+            alignment=1  # Center alignment
+        )
+        story.append(Paragraph("Library Management System - Overall Report", title_style))
+        story.append(Spacer(1, 20))
+
+        # Generation date
+        date_style = ParagraphStyle(
+            'DateStyle',
+            parent=styles['Normal'],
+            fontSize=10,
+            alignment=1
+        )
+        story.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}", date_style))
+        story.append(Spacer(1, 30))
+
+        # Summary Statistics
+        story.append(Paragraph("Summary Statistics", styles['Heading2']))
+        summary_data = [
+            ['Metric', 'Count'],
+            ['Total Book Titles', f'{total_book_titles:,}'],
+            ['Total Book Volumes', f'{total_book_volumes:,}'],
+            ['Total Journals', f'{total_journals:,}'],
+            ['National Journals', f'{national_journals:,}'],
+            ['International Journals', f'{international_journals:,}'],
+            ['Total E-books', f'{total_ebooks:,}'],
+            ['Total E-journals', f'{total_ejournals:,}'],
+            ['Total Thesis Documents', f'{total_thesis:,}'],
+            ['Total Students in System', f'{total_students_system:,}']
+        ]
+
+        summary_table = Table(summary_data, colWidths=[3*inch, 2*inch])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        story.append(summary_table)
+        story.append(Spacer(1, 30))
+
+        # College and Department Breakdown
+        story.append(Paragraph("College and Department Breakdown", styles['Heading2']))
+
+        for college in colleges_data:
+            # College header
+            college_style = ParagraphStyle(
+                'CollegeStyle',
+                parent=styles['Heading3'],
+                fontSize=14,
+                textColor=colors.blue
+            )
+            story.append(Paragraph(f"{college['name']} ({college['code']}) - {college['total_students']} students", college_style))
+
+            # Department table
+            dept_data = [['Department', 'Code', 'Students']]
+            for dept in college['departments']:
+                dept_data.append([dept['name'], dept['code'], str(dept['student_count'])])
+
+            if len(dept_data) > 1:  # Only create table if there are departments
+                dept_table = Table(dept_data, colWidths=[3*inch, 1*inch, 1*inch])
+                dept_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                ]))
+                story.append(dept_table)
+            else:
+                story.append(Paragraph("No departments found", styles['Normal']))
+
+            story.append(Spacer(1, 20))
+
+        # Build PDF
+        doc.build(story)
+        buffer.seek(0)
+
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'overall_report_{timestamp}.pdf'
+
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/pdf'
+        )
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Sunday Fine Settings API
+@app.route('/api/admin/sunday-fine-setting', methods=['GET'])
+@jwt_required()
+def get_sunday_fine_setting():
+    try:
+        current_user_id = int(get_jwt_identity())
+        current_user = User.query.get(current_user_id)
+        if not current_user or current_user.role not in ['admin', 'librarian']:
+            return jsonify({'error': 'Admin/Librarian access required'}), 403
+
+        # Get the setting, default to True (apply fines on Sundays)
+        apply_fines_on_sunday = Settings.get_setting('apply_fines_on_sunday', True)
+
+        return jsonify({
+            'apply_fines_on_sunday': apply_fines_on_sunday
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/sunday-fine-setting', methods=['POST'])
+@jwt_required()
+def update_sunday_fine_setting():
+    try:
+        current_user_id = int(get_jwt_identity())
+        current_user = User.query.get(current_user_id)
+        if not current_user or current_user.role not in ['admin', 'librarian']:
+            return jsonify({'error': 'Admin/Librarian access required'}), 403
+
+        data = request.get_json()
+        apply_fines_on_sunday = data.get('apply_fines_on_sunday', True)
+
+        # Save the setting
+        Settings.set_setting(
+            'apply_fines_on_sunday',
+            apply_fines_on_sunday,
+            'Whether to apply fines on Sundays for overdue books'
+        )
+
+        return jsonify({
+            'message': 'Sunday fine setting updated successfully',
+            'apply_fines_on_sunday': apply_fines_on_sunday
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # Report Generation Helper Functions
 def generate_excel_report(data, filename):
     """Generate Excel report from data"""

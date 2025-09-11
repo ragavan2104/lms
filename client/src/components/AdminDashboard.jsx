@@ -31,6 +31,7 @@ import PendingReturnsReport from './admin/PendingReturnsReport'
 import BackupManagement from './admin/BackupManagement'
 import AdminHome from './admin/AdminHome'
 import GraphicalView from './admin/GraphicalView'
+import OverallReport from './admin/OverallReport'
 
 const AdminDashboard = () => {
   return (
@@ -68,6 +69,7 @@ const AdminDashboard = () => {
           <Route path="/frequently-accessed-resources" element={<FrequentlyAccessedResources />} />
           <Route path="/library-collection" element={<LibraryCollection />} />
           <Route path="/graphical-view" element={<GraphicalView />} />
+          <Route path="/overall-report" element={<OverallReport />} />
           <Route path="*" element={<Navigate to="/admin" />} />
         </Routes>
       </div>

@@ -131,7 +131,7 @@ export const OverviewTab = ({ dashboardData, onReserveBook, onRenewBook, onCance
     </div>
 
     {/* Quick Actions */}
-    <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200">
+    {/* <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200">
       <div className="p-6 border-b border-gray-200">
         <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
       </div>
@@ -154,7 +154,7 @@ export const OverviewTab = ({ dashboardData, onReserveBook, onRenewBook, onCance
           </button>
         </div>
       </div>
-    </div>
+    </div> */}
 
 
   </div>

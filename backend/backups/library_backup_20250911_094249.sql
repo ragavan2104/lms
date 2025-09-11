@@ -155,6 +155,22 @@ INSERT INTO "holidays" VALUES(2,'Independence Day','2024-08-15','India Independe
 INSERT INTO "holidays" VALUES(3,'Gandhi Jayanti','2024-10-02','Mahatma Gandhi Birthday',1,'2025-09-09 13:27:34',1);
 INSERT INTO "holidays" VALUES(9,'Christmas','2024-12-25','Christmas Day',1,'2025-09-09 13:27:34',1);
 INSERT INTO "holidays" VALUES(11,'New Year''s Day','2024-01-01','New Year Holiday',1,'2025-09-09 13:27:34',1);
+CREATE TABLE journals (
+	id INTEGER NOT NULL, 
+	access_no VARCHAR(50) NOT NULL, 
+	journal_name VARCHAR(300) NOT NULL, 
+	publication VARCHAR(200) NOT NULL, 
+	journal_type VARCHAR(50) NOT NULL, 
+	created_at DATETIME, 
+	updated_at DATETIME, 
+	PRIMARY KEY (id), 
+	UNIQUE (access_no)
+);
+INSERT INTO "journals" VALUES(1,'JNL001','Journal of Computer Science and Technology','IEEE Computer Society','International Journal',NULL,NULL);
+INSERT INTO "journals" VALUES(2,'JNL002','Indian Journal of Engineering Research','Academic Publishers India','National Journal',NULL,NULL);
+INSERT INTO "journals" VALUES(3,'JNL003','International Journal of Software Engineering','Springer','International Journal',NULL,NULL);
+INSERT INTO "journals" VALUES(4,'JNL004','National Journal of Mathematics','Mathematical Society of India','National Journal',NULL,NULL);
+INSERT INTO "journals" VALUES(5,'JNL005','IEEE Transactions on Software Engineering','IEEE','International Journal',NULL,NULL);
 CREATE TABLE news_clippings (
 	id INTEGER NOT NULL, 
 	clipping_no VARCHAR(50) NOT NULL, 
